@@ -56,7 +56,9 @@
           </div>
           <div class="flex flex-row gap-1 mx-auto md:mx-0">
             <span class="text-gray-600">Documents signed:</span>
-            <span class="font-medium">{{ user.totalDocumentsSigned }}</span>
+            <span class="font-medium">{{
+              user.totalDocumentsSigned ? user.totalDocumentsSigned : '0'
+            }}</span>
           </div>
         </div>
       </div>
@@ -207,15 +209,18 @@ import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDocumentStore } from '@/stores/document'
 import { getDocuments } from '@/api/document'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const documentStore = useDocumentStore()
-const user = ref({
+/* const user = ref({
   id: 1,
   username: 'john_doe',
   email: 'john.doe@example.com',
   joinDate: '2024-01-15',
   totalDocumentsSigned: 24,
-})
+}) */
+const user = userStore.currentUser
 
 const loading = ref(true)
 
@@ -223,9 +228,7 @@ const { filteredDocuments, filter } = storeToRefs(documentStore)
 
 const fetchUserData = async () => {
   loading.value = true
-  await new Promise((resolve) => setTimeout(resolve, 1000))
   await getDocuments()
-
   loading.value = false
 }
 

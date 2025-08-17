@@ -1,5 +1,5 @@
 <template>
-  <div class="py-6 px-2 text-center">
+  <div class="py-6 px-0 text-center">
     <h1 class="font-bold mb-2 mx-auto">Upload document to sign</h1>
     <h4 class="text-gray-800 max-w-160 mx-auto">
       Click below to upload your document or drag and drop it here. Accepted file formats: PDF, JPG,
@@ -15,7 +15,7 @@
         :class="{ 'animate-pulse scale-[1.01]': isUploading }"
         @dragover.prevent
         @dragenter.prevent
-        @drop.prevent="handleDrop"
+        @drop.prevent="handleFile"
       >
         <div v-if="isSigning" class="flex justify-center">
           <div class="w-full flex justify-center relative">
@@ -48,7 +48,7 @@
           style="filter: blur(1px)"
         ></canvas>
 
-        <input type="file" ref="fileInput" class="hidden" @change="handleFileSelect" />
+        <input type="file" ref="fileInput" class="hidden" @change="handleFile" />
 
         <div class="z-50">
           <button
@@ -74,7 +74,7 @@
 
     <div v-if="!isSigned" class="flex items-center justify-center">
       <button
-        @click="signDocument"
+        @click="handleSignDocument"
         class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-gray-200 hover:from-blue-700 hover:to-blue-800 w-50 text-2xl font-semibold py-6 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
       >
         Sign document
@@ -92,6 +92,7 @@
 </template>
 
 <script setup>
+import { signDocument } from '@/api/document'
 import * as pdfjsLib from 'pdfjs-dist'
 import { ref } from 'vue'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
@@ -100,29 +101,24 @@ const isUploading = ref(false)
 const file = ref(null)
 const isSigned = ref(false)
 const isSigning = ref(false)
+const signedDoc = ref(null)
 
 const image = ref(null)
 const fileInput = ref(null)
 const uploadArea = ref(null)
 const pdfCanvas = ref(null)
 
-const handleDrop = (event) => {
-  const droppedFiles = event.dataTransfer.files
-  handleFile(droppedFiles[0])
-}
-
-const handleFileSelect = (event) => {
-  const selectedFile = event.target.files[0]
-
-  if (selectedFile) {
-    handleFile(selectedFile)
-  }
-}
-
-const handleFile = (selectedFile) => {
+const handleFile = (event) => {
+  file.value = event.target.files[0]
+  console.log(file.value)
   isUploading.value = true
-  file.value = selectedFile
-  if (file.value) {
+  if (
+    file.value &&
+    (file.value.type.endsWith('png') ||
+      file.value.type.endsWith('jpeg') ||
+      file.value.type === 'application/pdf' ||
+      file.value.name.endsWith('.docx'))
+  ) {
     if (file.value.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onload = () => {
@@ -138,39 +134,37 @@ const handleFile = (selectedFile) => {
     } else {
       uploadArea.value.style.backgroundImage = ''
     }
-    setTimeout(() => {
-      isUploading.value = false
-    }, 2000)
+    isUploading.value = false
+  } else {
+    isUploading.value = false
+    alert('Allowed file types are .png, .jpg .pdf and .docx')
+    file.value = null
   }
 }
 
-const renderPDF = (pdfFile) => {
+const renderPDF = async (pdfFile) => {
   const reader = new FileReader()
-  reader.onload = (e) => {
-    const arrayBuffer = e.target.result
-    const loadingTask = pdfjsLib.getDocument(arrayBuffer)
-    loadingTask.promise
-      .then((pdf) => {
-        pdf.getPage(1).then((page) => {
-          const scale = 1.5
-          const viewport = page.getViewport({ scale: scale })
+  reader.onload = async (e) => {
+    try {
+      const arrayBuffer = e.target.result
+      const pdf = await pdfjsLib.getDocument(arrayBuffer).promise
+      const page = await pdf.getPage(1)
 
-          const canvas = pdfCanvas.value
-          const context = canvas.getContext('2d')
+      const viewport = page.getViewport({ scale: 1 })
+      const canvas = pdfCanvas.value
+      const context = canvas.getContext('2d')
 
-          canvas.width = viewport.width
-          canvas.height = viewport.height
+      canvas.width = viewport.width
+      canvas.height = viewport.height
 
-          page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-            console.log('PDF rendered as image')
-          })
-        })
-      })
-      .catch((error) => {
-        console.error('Error loading PDF:', error)
-      })
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise
+    } catch (error) {
+      console.error('Error rendering PDF:', error)
+    }
   }
-
   reader.readAsArrayBuffer(pdfFile)
 }
 
@@ -178,41 +172,55 @@ const triggerFileInput = () => {
   fileInput.value.click()
 }
 
-const removeFileInput = () => {
-  file.value = null
-  image.value = null
-  isSigned.value = false
-  isSigning.value = false
-  fileInput.value.value = null
-}
-
-const signDocument = async () => {
+const handleSignDocument = async () => {
   if (file.value) {
     isSigning.value = true
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        isSigning.value = false
-        if (file.value) {
-          isSigned.value = true
-        }
-        resolve()
-      }, 3000)
-    })
+    try {
+      const fileData = new FormData()
+      fileData.append('file', file.value)
+      signedDoc.value = await signDocument(fileData)
+      console.log('Signed document: ', signedDoc.value)
+      isSigned.value = true
+    } catch (error) {
+      console.error('Error signing document', error)
+    } finally {
+      isSigning.value = false
+    }
   } else {
     alert('Please upload a document to sign')
   }
 }
 
 const saveDocument = async () => {
-  if (file.value) {
-    const url = URL.createObjectURL(file.value)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = file.value.name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  if (signedDoc.value) {
+    try {
+      // convert Buffer data to a Blob
+      const byteArray = new Uint8Array(signedDoc.value.file.buffer.data)
+      const blob = new Blob([byteArray], { type: signedDoc.value.file.mimetype })
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = signedDoc.value.file.originalname
+      document.body.appendChild(a)
+      a.click()
+
+      setTimeout(() => {
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }, 100)
+    } catch (error) {
+      console.error('Download failed:', error)
+    }
   }
+}
+const removeFileInput = () => {
+  file.value = null
+  image.value = null
+  isSigned.value = false
+  isSigning.value = false
+  fileInput.value.value = null
+  signedDoc.value = null
 }
 </script>

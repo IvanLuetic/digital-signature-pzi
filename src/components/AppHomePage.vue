@@ -23,7 +23,7 @@
         signature—no physical paperwork required.
       </p>
 
-      <router-link :to="user ? '/sign' : '/auth'">
+      <router-link :to="userStore.currentUser ? '/sign' : '/auth'">
         <button
           class="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-700 text-white flex items-center justify-center gap-2 text-2xl font-semibold py-8 px-12 rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
         >
@@ -227,11 +227,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
 import { useUserStore } from '../stores/user.js'
 
 const userStore = useUserStore()
-const user = ref()
-
-onMounted(() => (user.value = userStore.currentUser))
 </script>

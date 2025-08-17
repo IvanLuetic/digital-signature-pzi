@@ -12,7 +12,7 @@
 
         <!-- Desktop -->
         <div class="hidden sm:flex items-center space-x-4">
-          <template v-if="!user">
+          <template v-if="!userStore.currentUser">
             <a href="#about" class="hover:text-blue-100 px-3 py-2 transition-colors">About</a>
             <router-link to="/auth" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Log in
@@ -43,7 +43,7 @@
             </router-link>
 
             <button
-              @click="userStore.logout"
+              @click="userStore.handleLogout"
               class="hover:text-blue-100 px-3 py-2 transition-colors cursor-pointer"
             >
               Log out
@@ -81,7 +81,7 @@
       <div class="px-2 pt-2 pb-3 space-y-1">
         <a href="#about" class="block px-3 py-2" @click="isOpen = false"> About </a>
 
-        <template v-if="!user">
+        <template v-if="!userStore.currentUser">
           <router-link to="/auth" class="block px-3 py-2" @click="isOpen = false">
             Log in
           </router-link>
@@ -93,7 +93,7 @@
         <template v-else>
           <router-link
             to="/profile"
-            class="px-3 py-2 block hover:bg-blue-600 rounded-md transition-colors items-center"
+            class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
             @click="isOpen = false"
           >
             <svg
@@ -111,7 +111,7 @@
             Profile
           </router-link>
           <button
-            @click="(authApi.logout, (isOpen = false))"
+            @click="(userStore.handleLogout, (isOpen = false))"
             class="w-full text-left px-3 py-2 hover:bg-blue-600 rounded-md transition-colors"
           >
             Log out
@@ -123,13 +123,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useUserStore } from '../stores/user.js'
-import { authApi } from '@/api/auth.js'
-import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()
-const user = ref()
 const isOpen = ref(false)
 
 const scrollToTop = () => {
@@ -138,8 +135,4 @@ const scrollToTop = () => {
     behavior: 'smooth',
   })
 }
-onMounted(() => {
-  user.value = userStore.currentUser
-  console.log(user.value)
-})
 </script>
