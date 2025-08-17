@@ -1,4 +1,4 @@
-# PZI_1
+# Aplikacija za digitalni potpis dokumenata za kolegij Programiranje za Internet
 
 This template should help get you started developing with Vue 3 in Vite.
 
