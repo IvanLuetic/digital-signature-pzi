@@ -132,12 +132,7 @@
 import { ref, defineEmits } from 'vue'
 import { editProfile } from '@/api/user'
 import { useUserStore } from '@/stores/user'
-/* const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true,
-  },
-}) */
+
 const emit = defineEmits(['closeModal'])
 const userStore = useUserStore()
 
@@ -151,11 +146,6 @@ const saving = ref(false)
 
 const message = ref('')
 const error = ref('')
-/* const closeModal = (event) => {
-  if (event.target === event.currentTarget) {
-    showEditModal.value = false
-  }
-} */
 
 const saveProfile = async () => {
   message.value = ''
@@ -192,7 +182,6 @@ const saveProfile = async () => {
   }
 
   try {
-    // Prepare data for update - only include fields that have values
     const updateData = {}
     if (editUsername.value) updateData.username = editUsername.value.trim()
     if (editEmail.value) updateData.email = editEmail.value.trim()
@@ -203,7 +192,6 @@ const saveProfile = async () => {
     message.value = 'Profile updated successfully!'
     emit('closeModal')
 
-    // Clear form
     editUsername.value = ''
     editEmail.value = ''
     editPassword.value = ''
