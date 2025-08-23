@@ -298,7 +298,6 @@ const closeModal = () => {
   emit('closeModal')
 }
 
-// Lifecycle
 onMounted(() => {
   displayDocument()
 })

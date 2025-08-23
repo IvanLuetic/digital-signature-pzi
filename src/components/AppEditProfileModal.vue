@@ -170,7 +170,6 @@ const saveProfile = async () => {
     hasError = true
   }
 
-  // Check if at least one field is being updated
   if (!editUsername.value && !editEmail.value && !editPassword.value) {
     error.value = 'Please fill at least one field to update!'
     hasError = true
