@@ -1,5 +1,7 @@
 -- Create the database
-CREATE DATABASE IF NOT EXISTS docsigner_db;
+CREATE DATABASE IF NOT EXISTS docsigner_db
+    DEFAULT CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
 USE docsigner_db;
 -- users table
 CREATE TABLE users (
@@ -11,7 +13,7 @@ CREATE TABLE users (
 );
 
 -- public_keys table
-CREATE TABLE keys (
+CREATE TABLE pgp (
                              id INT AUTO_INCREMENT PRIMARY KEY,
                              user_id INT NOT NULL,
                              public_key TEXT NOT NULL,
@@ -29,7 +31,7 @@ CREATE TABLE signed_documents (
                                   public_key_id INT NOT NULL,
                                   signed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                   FOREIGN KEY (user_id) REFERENCES users(id),
-                                  FOREIGN KEY (public_key_id) REFERENCES keys(id)
+                                  FOREIGN KEY (public_key_id) REFERENCES pgp(id)
 );
 
 -- Ensure uniqueness of unsigned file hash per user
