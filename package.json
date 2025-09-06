@@ -1,0 +1,32 @@
+{
+  "name": "digital-signature-backend",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "backend"
+  ],
+  "homepage": "https://github.com/IvanLuetic/digital-signature-pzi#readme",
+  "bugs": {
+    "url": "https://github.com/IvanLuetic/digital-signature-pzi/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanLuetic/digital-signature-pzi.git"
+  },
+  "license": "GPL-2.0",
+  "author": "Niksa Ramljak",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "node run ./index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.9.7",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {}
+}
