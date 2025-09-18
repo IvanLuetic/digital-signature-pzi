@@ -18,7 +18,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "node run ./index.js"
+    "back": "node ./index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
