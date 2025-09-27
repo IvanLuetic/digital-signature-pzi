@@ -1,13 +1,8 @@
-import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api/auth'
 
-export const forbidUnauthenticated = async () => {
-  const userStore = useUserStore()
-  if (userStore.currentUser) return true
-
+export const forbidUnauthorized = async () => {
   try {
-    const user = await authApi.fetchUser()
-    userStore.currentUser = user
+    await authApi.checkAdmin()
     return true
   } catch {
     return false

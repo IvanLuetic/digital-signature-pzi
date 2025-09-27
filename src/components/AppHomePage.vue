@@ -15,7 +15,7 @@
     />
 
     <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-2">
-      <h1 class="text-white text-4xl md:text-5xl font-bold mb-4 leading-tight">
+      <h1 class="text-white font-bold mb-4 leading-tight">
         Sign your documents easily and securely
       </h1>
       <p class="text-white text-lg md:text-xl mb-8 max-w-2xl opacity- mx-2">
@@ -25,7 +25,7 @@
 
       <router-link :to="userStore.currentUser ? '/sign' : '/auth'">
         <button
-          class="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-700 text-white flex items-center justify-center gap-2 text-2xl font-semibold py-8 px-12 rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
+          class="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-700 text-white flex items-center justify-center gap-2 text-2xl sm:text-3xl font-semibold py-8 px-10 rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
         >
           Get started
           <svg
@@ -72,7 +72,7 @@
         </div>
         <p class="text-gray-700 sm:ml-8">
           Drag and drop or select the file you want to sign from your device. We accept a variety of
-          file types, including PDF, JPG, and DOCX.
+          file types, including PNG, JPG, and PDF.
         </p>
       </div>
 

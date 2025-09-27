@@ -1,17 +1,14 @@
 <template>
   <div class="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen relative">
-    <!-- Main Content -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">My account</h1>
-      <p class="text-gray-600">Manage your profile and view your signed documents</p>
+      <span class="text-4xl font-bold text-gray-800">My account</span>
+      <p class="text-gray-600 mt-2">Manage your profile and view your signed documents</p>
     </div>
 
-    <!-- Profile Card -->
     <div
       class="flex flex-col md:flex-row gap-4 bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
     >
       <div class="flex flex-col md:flex-row flex-grow items-center md:items-start gap-6">
-        <!-- Avatar -->
         <div
           class="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-800 rounded-full flex flex-none items-center justify-center"
         >
@@ -24,14 +21,13 @@
             ></path>
           </svg>
         </div>
-        <!-- Profile Details -->
+
         <div class="flex flex-col gap-2 text-center md:text-start">
-          <div>
-            <h2 class="text-2xl font-semibold text-gray-900">
-              {{ user.username }}
-            </h2>
-          </div>
-          <div class="flex flex-row gap-1 -ml-1">
+          <span class="text-4xl font-semibold mt-2 text-gray-800">
+            {{ user.username }}
+          </span>
+
+          <div class="flex flex-row gap-1">
             <svg
               class="w-4 h-4 mt-1.5 text-gray-500"
               fill="none"
@@ -52,7 +48,7 @@
         <div class="flex flex-col flex-grow self-center md:ml-10 md:self-end">
           <div>
             <span class="text-gray-600">Member since: </span>
-            <span class="font-medium">{{ formatDate(user.joinDate) }}</span>
+            <span class="font-medium">{{ formatDate(user.join_date) }}</span>
           </div>
           <div class="flex flex-row gap-1 mx-auto md:mx-0">
             <span class="text-gray-600">Documents signed:</span>
@@ -64,29 +60,17 @@
       </div>
       <div class="flex mx-auto self-end">
         <button
-          @click="showEditModal = true"
+          @click="$emit('editProfile')"
           class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md cursor-pointer hover:bg-blue-700"
         >
           Edit Profile
         </button>
       </div>
     </div>
-
-    <app-edit-profile-modal
-      v-if="showEditModal"
-      @close-modal="showEditModal = false"
-    ></app-edit-profile-modal>
-
-    <app-document-modal
-      v-if="showDocumentModal"
-      @close-modal="showDocumentModal = false"
-      :document="documentToView"
-    ></app-document-modal>
-    <!-- Documents -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">Signed Documents</h3>
+          <span class="text-3xl font-semibold text-gray-800">Signed Documents</span>
           <span class="text-sm text-gray-500">{{ filteredDocuments.length }} documents</span>
         </div>
 
@@ -144,7 +128,7 @@
           <div
             v-for="document in filteredDocuments"
             :key="document.id"
-            class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
+            class="border-2 border-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex items-start justify-between">
               <div class="flex-grow min-w-0">
@@ -182,14 +166,14 @@
                         d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-4 8a3 3 0 01-3-3V8a3 3 0 016 0v4a3 3 0 01-3 3z"
                       ></path>
                     </svg>
-                    <span>Signed {{ formatDate(document.file.signedDate) }}</span>
+                    <span>Signed {{ formatDate(document.file.signed_at) }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="flex items-center space-x-2 ml-4">
                 <button
-                  @click="handleView(document)"
+                  @click="$emit('viewDocument', document)"
                   class="p-2 cursor-pointer text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                   title="View Document"
                 >
@@ -223,18 +207,9 @@ import { storeToRefs } from 'pinia'
 import { useDocumentStore } from '@/stores/document'
 import { getDocuments } from '@/api/document'
 import { useUserStore } from '@/stores/user'
-import AppEditProfileModal from './AppEditProfileModal.vue'
-import AppDocumentModal from './AppDocumentModal.vue'
 
 const userStore = useUserStore()
 const documentStore = useDocumentStore()
-
-const documents = documentStore.documents
-console.log('DOCUMENTS', documents)
-
-const showEditModal = ref(false)
-const showDocumentModal = ref(false)
-const documentToView = ref({})
 
 const user = userStore.currentUser
 const { filteredDocuments, filter } = storeToRefs(documentStore)
@@ -253,11 +228,6 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric',
   })
-}
-
-const handleView = (document) => {
-  documentToView.value = document
-  showDocumentModal.value = true
 }
 
 onMounted(async () => {

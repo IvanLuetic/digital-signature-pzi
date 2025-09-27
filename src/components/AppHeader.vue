@@ -22,9 +22,41 @@
             </router-link>
           </template>
 
-          <template v-else>
+          <template v-if="userStore.currentUser.role === 'User'">
             <router-link to="/sign" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Sign document
+            </router-link>
+
+            <router-link
+              to="/profile"
+              class="hover:text-blue-100 px-3 py-2 transition-colors flex items-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 mr-1"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Profile
+            </router-link>
+
+            <button
+              @click="userStore.handleLogout"
+              class="hover:text-blue-100 px-3 py-2 transition-colors cursor-pointer"
+            >
+              Log out
+            </button>
+          </template>
+          <template v-if="userStore.currentUser.role === 'Admin'"
+            >"
+            <router-link to="/admin" class="hover:text-blue-100 px-3 py-2 transition-colors">
+              Admin panel
             </router-link>
 
             <router-link
@@ -93,13 +125,47 @@
           </router-link>
         </template>
 
-        <template v-else>
+        <template v-if="userStore.currentUser.role === 'User'">
           <router-link
             to="/sign"
             class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
             @click="isOpen = false"
           >
             Sign document
+          </router-link>
+          <router-link
+            to="/profile"
+            class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
+            @click="isOpen = false"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Profile
+          </router-link>
+          <button
+            @click="(userStore.handleLogout, (isOpen = false))"
+            class="w-full text-left px-3 py-2 hover:bg-blue-600 rounded-md transition-colors"
+          >
+            Log out
+          </button>
+        </template>
+        <template v-if="userStore.currentUser.role === 'Admin'">
+          <router-link
+            to="/admin"
+            class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
+            @click="isOpen = false"
+          >
+            Admin dashboard
           </router-link>
           <router-link
             to="/profile"

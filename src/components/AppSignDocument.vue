@@ -3,63 +3,77 @@
     <h1 class="font-bold mb-2 mx-auto">Upload document to sign</h1>
     <h4 class="text-gray-800 max-w-160 mx-auto">
       Click below to upload your document or drag and drop it here. Accepted file formats: PDF, JPG,
-      PNG, DOCX
+      PNG
     </h4>
   </div>
 
   <div class="flex flex-col items-center gap-8 mx-4 pb-30">
-    <div class="w-full md:w-3/5 lg:w-2/5 flex justify-center items-center border-2 border-dashed">
+    <div class="w-full md:w-3/5 lg:w-2/5 flex justify-center items-center">
       <div
         ref="uploadArea"
-        class="flex flex-col justify-around items-center min-h-[40vh] w-full border-gray-500 relative bg-stone-300"
-        :class="{ 'animate-pulse scale-[1.01]': isUploading }"
+        class="flex flex-col justify-around items-center min-h-[40vh] w-full relative bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-gray-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+        :class="{ 'animate-pulse scale-[1.02] border-blue-500': isUploading }"
         @dragover.prevent
         @dragenter.prevent
         @drop.prevent="handleFile"
       >
-        <div v-if="isSigning" class="flex justify-center">
-          <div class="w-full flex justify-center relative">
-            <p class="absolute z-10 font-bold">Signing your document...</p>
+        <div
+          v-if="isSigning"
+          class="flex justify-center items-center z-100 absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl"
+        >
+          <div class="text-center space-y-4 p-8">
             <div
-              class="my-6 absolute bg-blue-500 h-4 rounded animate-pulse"
-              style="top: 32%; left: 50%; transform: translate(-50%, -50%); width: 14vw"
+              class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"
             ></div>
+            <p class="font-semibold text-gray-700 text-lg">Signing your document...</p>
           </div>
         </div>
-        <i v-if="!file" class="mdi mdi-cloud-upload text-6xl"></i>
-        <div v-if="!file" class="text-2xl text-gray-800 text-center">
-          Drag & Drop <br />
-          OR <br />
+
+        <i v-if="!file" class="mdi mdi-cloud-upload text-7xl text-blue-600"></i>
+
+        <div v-if="!file" class="text-xl text-gray-600 text-center font-medium">
+          <span class="text-blue-600">Drag & Drop</span>
+          <br />
+          <span class="text-gray-400 text-lg">OR</span>
+          <br />
         </div>
+
         <img
           v-if="image"
           :src="image"
           alt="Uploaded Document"
           :class="[
             isSigning
-              ? 'blur-sm w-full absolute h-full bg-cover bg-center'
-              : 'blur-xs w-full  absolute h-full bg-cover bg-center',
+              ? 'blur-sm w-full absolute h-full object-cover rounded-2xl'
+              : 'blur-xs w-full absolute h-full object-cover rounded-2xl',
           ]"
         />
+
         <canvas
           v-if="file && !image"
           ref="pdfCanvas"
-          class="min-h-[40vh] w-full absolute h-full"
+          class="min-h-[40vh] w-full absolute h-full rounded-2xl"
           style="filter: blur(1px)"
         ></canvas>
 
-        <input type="file" ref="fileInput" class="hidden" @change="handleFile" />
+        <input
+          type="file"
+          ref="fileInput"
+          class="hidden"
+          accept=".jpg, .png, .pdf"
+          @change="handleFile"
+        />
 
         <div class="z-50">
           <button
-            class="bg-gray-200 hover:bg-gray-300 py-2 px-6 rounded text-lg border border-black shadow-md cursor-pointer"
+            class="bg-white hover:bg-gray-10 text-gray-700 py-3 px-8 rounded-xl text-lg font-semibold border-2 border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
             v-if="!file"
             @click="triggerFileInput"
           >
             SELECT FILE
           </button>
           <button
-            class="bg-gray-200 hover:bg-gray-300 py-2 px-6 rounded text-lg border border-black shadow-md cursor-pointer"
+            class="bg-white hover:bg-gray-100 text-gray-700 py-3 px-8 rounded-xl text-lg font-semibold border-2 border-gray-400 hover:border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
             v-else
             @click="removeFileInput"
           >
@@ -68,14 +82,15 @@
         </div>
       </div>
     </div>
-    <div class="relative bottom-6">
+
+    <div class="relative bottom-6 text-center">
       <p v-if="file">{{ file.name }} selected</p>
     </div>
 
     <div v-if="!isSigned" class="flex items-center justify-center">
       <button
         @click="handleSignDocument"
-        class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-gray-200 hover:from-blue-700 hover:to-blue-800 w-50 text-2xl font-semibold py-6 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
+        class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-white hover:from-blue-700 hover:to-blue-800 w-50 text-2xl font-semibold py-6 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
       >
         Sign document
       </button>
@@ -83,7 +98,7 @@
     <div v-else class="flex items-center justify-center">
       <button
         @click="saveDocument"
-        class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-gray-200 hover:from-blue-700 hover:to-blue-800 text-2xl font-semibold py-6 px-7 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
+        class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-white hover:from-blue-700 hover:to-blue-800 text-2xl font-semibold py-6 px-7 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
       >
         Download <i class="mdi mdi-download text-2xl mt-1"></i>
       </button>
@@ -97,6 +112,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import { ref } from 'vue'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
 
+const emit = defineEmits(['message'])
 const isUploading = ref(false)
 const file = ref(null)
 const isSigned = ref(false)
@@ -116,8 +132,7 @@ const handleFile = (event) => {
     file.value &&
     (file.value.type.endsWith('png') ||
       file.value.type.endsWith('jpeg') ||
-      file.value.type === 'application/pdf' ||
-      file.value.name.endsWith('.docx'))
+      file.value.type === 'application/pdf')
   ) {
     if (file.value.type.startsWith('image/')) {
       const reader = new FileReader()
@@ -137,7 +152,7 @@ const handleFile = (event) => {
     isUploading.value = false
   } else {
     isUploading.value = false
-    alert('Allowed file types are .png, .jpg .pdf and .docx')
+    alert('Allowed file types are .png, .jpg and .pdf')
     file.value = null
   }
 }
@@ -178,11 +193,20 @@ const handleSignDocument = async () => {
     try {
       const fileData = new FormData()
       fileData.append('file', file.value)
+      console.log(fileData)
       signedDoc.value = await signDocument(fileData)
       console.log('Signed document: ', signedDoc.value)
+      emit('message', {
+        type: 'success',
+        message: 'Document signed succesfuly!',
+      })
       isSigned.value = true
     } catch (error) {
       console.error('Error signing document', error)
+      emit('message', {
+        type: 'error',
+        message: 'Error signing document',
+      })
     } finally {
       isSigning.value = false
     }
@@ -198,7 +222,6 @@ const saveDocument = async () => {
       const byteArray = new Uint8Array(signedDoc.value.file.buffer.data)
       const blob = new Blob([byteArray], { type: signedDoc.value.file.mimetype })
 
-      // Create download link
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -212,6 +235,10 @@ const saveDocument = async () => {
       }, 100)
     } catch (error) {
       console.error('Download failed:', error)
+      emit('message', {
+        type: 'error',
+        message: error,
+      })
     }
   }
 }

@@ -36,7 +36,7 @@
 
       <div class="flex-1 p-6 overflow-auto">
         <div class="flex justify-center items-center min-h-[400px] bg-gray-50 rounded-lg">
-          <!-- Image Display -->
+          <!-- Image display -->
           <img
             v-if="image && !loading"
             :src="image"
@@ -44,31 +44,13 @@
             class="max-w-full max-h-full object-contain rounded-lg shadow-sm"
           />
 
-          <!-- PDF Canvas -->
+          <!-- PDF display -->
           <canvas
             v-show="!image && isPDF && !loading"
             ref="pdfCanvas"
             class="max-w-full max-h-full rounded-lg shadow-sm"
           ></canvas>
 
-          <div v-if="!isSupported" class="text-center py-12">
-            <svg
-              class="mx-auto h-16 w-16 text-gray-400 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              ></path>
-            </svg>
-            <h4 class="text-lg font-medium text-gray-900 mb-2">Preview not available</h4>
-          </div>
-
-          <!-- Loading  -->
           <div v-if="loading" class="text-center py-12">
             <div
               class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"
@@ -118,10 +100,9 @@
     </div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
   <div
     v-if="showDeleteConfirm"
-    class="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4"
+    class="fixed inset-0 mx-2 bg-black/80 z-60 flex items-center justify-center p-4"
     @click="cancelDelete"
   >
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6" @click.stop>
@@ -147,7 +128,7 @@
         >"?
       </p>
 
-      <div class="flex space-x-3">
+      <div class="flex justify-end space-x-3">
         <button
           @click="cancelDelete"
           class="px-4 py-2 text-gray-700 border cursor-pointer border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
@@ -173,7 +154,6 @@ import * as pdfjsLib from 'pdfjs-dist'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
 import { deleteDocument } from '@/api/document'
 
-// Passed-in document
 const { document } = defineProps({
   document: {
     type: Object,
@@ -189,10 +169,7 @@ const loading = ref(true)
 const deleting = ref(false)
 const showDeleteConfirm = ref(false)
 
-const isImage = computed(() => document.file.mimetype.startsWith('image/'))
 const isPDF = computed(() => document.file.mimetype === 'application/pdf')
-//If it's a .docx, nothing is displayed
-const isSupported = computed(() => isImage.value || isPDF.value)
 
 const getFileSize = () => {
   const bytes = document.file.size
@@ -217,8 +194,6 @@ const displayDocument = async () => {
       // Convert buffer data for PDF rendering
       await renderPDF(fileData)
       image.value = null
-    } else {
-      console.log('Unsupported file type:', fileData.mimetype)
     }
   } catch (error) {
     console.error('Error displaying document:', error)
