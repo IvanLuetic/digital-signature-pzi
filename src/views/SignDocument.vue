@@ -1,13 +1,13 @@
 <template>
   <AppHeader></AppHeader>
-  <div class="flex justify-center">
-    <AppError
-      v-if="error || success"
-      :error="error"
-      :success="success"
-      @close="clearError()"
-    ></AppError>
-  </div>
+
+  <AppError
+    v-if="error || success"
+    :error="error"
+    :success="success"
+    @close="clearError()"
+  ></AppError>
+
   <AppSignDocument @message="handleMessage($event)"></AppSignDocument>
 </template>
 
@@ -24,5 +24,8 @@ const handleMessage = (message) => {
     error.value = message.message
   } else success.value = message.message
 }
-const clearError = () => (error.value = '')
+const clearError = () => {
+  error.value = ''
+  success.value = ''
+}
 </script>

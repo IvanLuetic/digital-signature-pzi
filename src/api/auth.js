@@ -2,25 +2,21 @@ import apiConfig from './config'
 
 const signUp = async (data) => {
   const response = await apiConfig.post('/auth/signup', data)
-  const {
-    data: { user },
-  } = response.data
-  return user
-}
-const login = async (data) => {
-  const response = await apiConfig.post('/auth/login', data)
-  const {
-    data: { user },
-  } = response.data
-  return user
+  const { user, token } = response.data
+  return { user, token }
 }
 
-//get user with cookies
+const login = async (data) => {
+  const response = await apiConfig.post('/auth/login', data)
+  const { user, token } = response.data
+  return { user, token }
+}
+
 const fetchUser = async () => {
   const response = await apiConfig.get('/auth/me')
   const {
     data: { user },
-  } = response.data
+  } = response
   return user
 }
 
@@ -30,7 +26,7 @@ const logout = async () => {
 
 // ?
 
-/* const requestPasswordReset = async (email) => {
+const requestPasswordReset = async (email) => {
   return await apiConfig.post('/auth/forgot-password', email)
 }
 
@@ -43,7 +39,7 @@ const resetPassword = async (password, token) => {
 const changePassword = async (oldPassword, newPassword) => {
   return await apiConfig.patch('/auth/change-password', { oldPassword, newPassword })
 }
- */
+
 const checkAdmin = async () => {
   return await apiConfig.checkAdmin('/auth/check-admin')
 }

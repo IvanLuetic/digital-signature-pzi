@@ -56,12 +56,13 @@ const handleSubmit = async (data) => {
   if (hasError) return
 
   try {
-    const user = await authApi[isLogin.value ? 'login' : 'signUp']({
+    const { user, token } = await authApi[isLogin.value ? 'login' : 'signUp']({
       username: username.trim(),
       password: password.trim(),
       ...(!isLogin.value ? { email: email.trim() } : {}),
     })
     userStore.currentUser = user
+    localStorage.setItem('token', token)
     router.push({
       name: 'home',
     })

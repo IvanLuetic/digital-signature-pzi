@@ -24,7 +24,7 @@
 
         <div class="flex flex-col gap-2 text-center md:text-start">
           <span class="text-4xl font-semibold mt-2 text-gray-800">
-            {{ user.username }}
+            {{ currentUser.username }}
           </span>
 
           <div class="flex flex-row gap-1">
@@ -42,18 +42,18 @@
               ></path>
             </svg>
             <span class="text-gray-600">Email:</span>
-            <span class="font-medium">{{ user.email }}</span>
+            <span class="font-medium">{{ currentUser.email }}</span>
           </div>
         </div>
         <div class="flex flex-col flex-grow self-center md:ml-10 md:self-end">
           <div>
             <span class="text-gray-600">Member since: </span>
-            <span class="font-medium">{{ formatDate(user.join_date) }}</span>
+            <span class="font-medium">{{ formatDate(currentUser.join_date) }}</span>
           </div>
           <div class="flex flex-row gap-1 mx-auto md:mx-0">
             <span class="text-gray-600">Documents signed:</span>
             <span class="font-medium">{{
-              user.totalDocumentsSigned ? user.totalDocumentsSigned : '0'
+              currentUser.totalDocumentsSigned ? currentUser.totalDocumentsSigned : '0'
             }}</span>
           </div>
         </div>
@@ -211,7 +211,7 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const documentStore = useDocumentStore()
 
-const user = userStore.currentUser
+const { currentUser } = storeToRefs(userStore)
 const { filteredDocuments, filter } = storeToRefs(documentStore)
 
 const loading = ref(true)

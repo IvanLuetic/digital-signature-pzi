@@ -1,4 +1,11 @@
 <template>
+  <app-sign-document-form
+    v-if="isSignDocumentFormOpen"
+    @close="isSignDocumentFormOpen = false"
+    @sign="handleSignDocument($event)"
+    :keys="publicKeys"
+  ></app-sign-document-form>
+
   <div class="py-6 px-0 text-center">
     <h1 class="font-bold mb-2 mx-auto">Upload document to sign</h1>
     <h4 class="text-gray-800 max-w-160 mx-auto">
@@ -19,7 +26,7 @@
       >
         <div
           v-if="isSigning"
-          class="flex justify-center items-center z-100 absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl"
+          class="flex justify-center items-center z-50 absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl"
         >
           <div class="text-center space-y-4 p-8">
             <div
@@ -89,7 +96,7 @@
 
     <div v-if="!isSigned" class="flex items-center justify-center">
       <button
-        @click="handleSignDocument"
+        @click="openSignDocumentForm"
         class="bg-gradient-to-r absolute from-blue-500 to-blue-600 text-white hover:from-blue-700 hover:to-blue-800 w-50 text-2xl font-semibold py-6 rounded-full border-1 border-black shadow-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer"
       >
         Sign document
@@ -107,9 +114,10 @@
 </template>
 
 <script setup>
-import { signDocument } from '@/api/document'
+import { downloadDocument, getPublicKeys, signDocument } from '@/api/document'
 import * as pdfjsLib from 'pdfjs-dist'
 import { ref } from 'vue'
+import AppSignDocumentForm from './AppSignDocumentForm.vue'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
 
 const emit = defineEmits(['message'])
@@ -117,7 +125,17 @@ const isUploading = ref(false)
 const file = ref(null)
 const isSigned = ref(false)
 const isSigning = ref(false)
-const signedDoc = ref(null)
+const publicKeys = ref([])
+const isSignDocumentFormOpen = ref(false)
+const signedDocumentId = ref('')
+
+const openSignDocumentForm = async () => {
+  if (file.value) {
+    const response = await getPublicKeys()
+    publicKeys.value = response.data.keys
+    isSignDocumentFormOpen.value = true
+  } else alert('Please upload a file to sign')
+}
 
 const image = ref(null)
 const fileInput = ref(null)
@@ -187,20 +205,22 @@ const triggerFileInput = () => {
   fileInput.value.click()
 }
 
-const handleSignDocument = async () => {
+const handleSignDocument = async (data) => {
   if (file.value) {
     isSigning.value = true
     try {
-      const fileData = new FormData()
-      fileData.append('file', file.value)
-      console.log(fileData)
-      signedDoc.value = await signDocument(fileData)
-      console.log('Signed document: ', signedDoc.value)
+      const formData = new FormData()
+      formData.append('file', file.value)
+      formData.append('public_key_id', data.public_key_id)
+      formData.append('password', data.password)
+      const response = await signDocument(formData)
+      signedDocumentId.value = response.data.id
       emit('message', {
         type: 'success',
         message: 'Document signed succesfuly!',
       })
       isSigned.value = true
+      isSignDocumentFormOpen.value = false
     } catch (error) {
       console.error('Error signing document', error)
       emit('message', {
@@ -216,38 +236,39 @@ const handleSignDocument = async () => {
 }
 
 const saveDocument = async () => {
-  if (signedDoc.value) {
-    try {
-      // convert Buffer data to a Blob
-      const byteArray = new Uint8Array(signedDoc.value.file.buffer.data)
-      const blob = new Blob([byteArray], { type: signedDoc.value.file.mimetype })
+  try {
+    const response = await downloadDocument(signedDocumentId.value)
 
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = signedDoc.value.file.originalname
-      document.body.appendChild(a)
-      a.click()
+    const blob = new Blob([response.data], { type: 'application/zip' })
 
-      setTimeout(() => {
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
-      }, 100)
-    } catch (error) {
-      console.error('Download failed:', error)
-      emit('message', {
-        type: 'error',
-        message: error,
-      })
-    }
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    a.download = 'document.zip'
+    document.body.appendChild(a)
+    a.click()
+
+    setTimeout(() => {
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    }, 100)
+  } catch (error) {
+    console.error('Download failed:', error)
+    emit('message', {
+      type: 'error',
+      message: error.response?.data?.message || 'Error downloading document',
+    })
+    throw error
   }
 }
+
 const removeFileInput = () => {
   file.value = null
   image.value = null
   isSigned.value = false
   isSigning.value = false
   fileInput.value.value = null
-  signedDoc.value = null
+  signedDocumentId.value = null
 }
 </script>

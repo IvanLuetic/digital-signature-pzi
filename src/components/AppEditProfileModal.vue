@@ -224,6 +224,8 @@ const saveProfile = async () => {
 
       await editProfile(updateData)
       success.value = 'Profile updated successfully!'
+      userStore.initializeUser()
+
       emit('closeModal')
     } catch (err) {
       error.value = err.response?.message || 'Something went wrong'

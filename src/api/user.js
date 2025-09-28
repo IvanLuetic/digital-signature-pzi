@@ -6,12 +6,12 @@ export const editProfile = async (data) => {
 
 //admin routes
 export const getUsers = async (page) => {
-  const response = await apiConfig.get(`/users?page=${page}`)
+  const response = await apiConfig.get(`/admin/users?page=${page}`)
   return response
 }
 
 export const getUserDocuments = async (id) => {
-  const response = await apiConfig.get(`/users/documents/${id}`)
+  const response = await apiConfig.get(`/admin/users/documents/${id}`)
   const userDocuments = response.data.documents
   /*  const mockDocuments = [
     { id: 1, name: 'passport.pdf', type: 'pdf', date_signed: '2024-06-01T10:00:00Z' },
@@ -22,5 +22,5 @@ export const getUserDocuments = async (id) => {
 }
 
 export const deleteUser = async (id) => {
-  return await apiConfig.delete(`/users/delete/${id}`)
+  return await apiConfig.delete(`/admin/users/delete/${id}`)
 }

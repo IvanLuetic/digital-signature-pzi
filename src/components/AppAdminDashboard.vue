@@ -226,8 +226,8 @@ const newPage = async (page, sort) => {
   loading.value = true
   try {
     const response = await getUsers(page, sort)
-    users.value = response.data.data.user.users
-    totalUsers.value = response.data.data.user.totalUsers
+    users.value = response.data.users
+    totalUsers.value = response.data.totalUsers
   } catch (err) {
     console.error('Failed to fetch users:', err)
   } finally {

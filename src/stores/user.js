@@ -10,6 +10,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       await authApi.logout()
       currentUser.value = null
+      localStorage.removeItem('token')
       router.push('/')
     } catch (err) {
       console.error(err)
@@ -20,6 +21,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const user = await authApi.fetchUser()
       currentUser.value = user
+      console.log(currentUser.value)
     } catch {
       currentUser.value = null
     }

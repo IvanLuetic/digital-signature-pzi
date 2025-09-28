@@ -22,11 +22,17 @@ export const getDocuments = async () => {
 }
 
 export const signDocument = async (document) => {
-  const response = await apiConfig.post('/workout/document/sign ', document)
-  const signedDocument = response.data.data
-  return signedDocument
+  return await apiConfig.post('/document/sign ', document)
+}
+
+export const downloadDocument = async (id) => {
+  return await apiConfig.get(`/document/download/${id}`)
 }
 
 export const deleteDocument = async (documentId) => {
   return await apiConfig.delete(`/document/${documentId}`)
+}
+
+export const getPublicKeys = async () => {
+  return await apiConfig.get('/pgp')
 }

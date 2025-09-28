@@ -22,7 +22,7 @@
             </router-link>
           </template>
 
-          <template v-if="userStore.currentUser.role === 'User'">
+          <template v-else-if="userStore.currentUser.role === 'user'">
             <router-link to="/sign" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Sign document
             </router-link>
@@ -53,7 +53,7 @@
               Log out
             </button>
           </template>
-          <template v-if="userStore.currentUser.role === 'Admin'"
+          <template v-else-if="userStore.currentUser.role === 'admin'"
             >"
             <router-link to="/admin" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Admin panel
@@ -125,7 +125,7 @@
           </router-link>
         </template>
 
-        <template v-if="userStore.currentUser.role === 'User'">
+        <template v-else-if="userStore.currentUser.role === 'user'">
           <router-link
             to="/sign"
             class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
@@ -159,7 +159,7 @@
             Log out
           </button>
         </template>
-        <template v-if="userStore.currentUser.role === 'Admin'">
+        <template v-else-if="userStore.currentUser.role === 'admin'">
           <router-link
             to="/admin"
             class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
