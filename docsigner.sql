@@ -5,11 +5,12 @@ CREATE DATABASE IF NOT EXISTS docsigner_db
 USE docsigner_db;
 -- users table
 CREATE TABLE users (
-                       id INT AUTO_INCREMENT PRIMARY KEY,
-                       username VARCHAR(50) NOT NULL UNIQUE,
-                       email VARCHAR(100) NOT NULL UNIQUE,
-                       password_hash VARCHAR(255) NOT NULL,
-                       join_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(50) NOT NULL UNIQUE,
+                        email VARCHAR(100) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        role ENUM('user', 'admin') NOT NULL DEFAULT 'user'
 );
 
 -- public_keys table
