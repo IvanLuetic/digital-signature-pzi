@@ -23,6 +23,11 @@ const router = createRouter({
       component: () => import('../views/SignDocument.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/verify',
+      name: 'verifyDocument',
+      component: () => import('../views/VerifyDocument.vue'),
+    },
 
     {
       path: '/profile',

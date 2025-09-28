@@ -1,26 +1,20 @@
 <template>
   <AppHeader></AppHeader>
-  <AppEditProfileModal
-    v-if="showEditModal"
-    @close-modal="showEditModal = false"
-  ></AppEditProfileModal>
-  <AppDocumentModal
+  <EditProfileModal v-if="showEditModal" @close-modal="showEditModal = false"></EditProfileModal>
+  <DocumentModal
     v-if="showDocumentModal"
     @close-modal="showDocumentModal = false"
     :document="documentToView"
-  ></AppDocumentModal>
-  <AppUserProfile
-    @editProfile="showEditModal = true"
-    @viewDocument="handleView($event)"
-  ></AppUserProfile>
+  ></DocumentModal>
+  <UserProfile @editProfile="showEditModal = true" @viewDocument="handleView($event)"></UserProfile>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import AppUserProfile from '@/components/AppUserProfile.vue'
+import UserProfile from '@/components/UserProfile.vue'
 import AppHeader from '@/components/AppHeader.vue'
-import AppEditProfileModal from '@/components/AppEditProfileModal.vue'
-import AppDocumentModal from '@/components/AppDocumentModal.vue'
+import EditProfileModal from '@/components/EditProfileModal.vue'
+import DocumentModal from '@/components/DocumentModal.vue'
 
 const showEditModal = ref(false)
 const showDocumentModal = ref(false)

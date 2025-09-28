@@ -6,15 +6,16 @@
     :error="error"
     :success="success"
     @close="clearError()"
+    class="mx-auto"
   ></AppError>
 
-  <AppSignDocument @message="handleMessage($event)"></AppSignDocument>
+  <SignDocument @message="handleMessage($event)"></SignDocument>
 </template>
 
 <script setup>
 import AppError from '@/components/AppError.vue'
 import AppHeader from '@/components/AppHeader.vue'
-import AppSignDocument from '@/components/AppSignDocument.vue'
+import SignDocument from '@/components/SignDocument.vue'
 import { ref } from 'vue'
 
 const error = ref('')

@@ -18,7 +18,7 @@
         <p class="text-blue-100 text-center mt-1 pb-3">Reset your password on the link below.</p>
       </div>
 
-      <h3 class="font-semibold text-blue-800 mb-4 w-full text-center">🔗 Reset Link Generated</h3>
+      <h3 class="font-semibold text-blue-800 mb-4 w-full text-center"> Reset Link Generated</h3>
 
       <div class="flex w-full items-center gap-2 mb-6">
         <input
@@ -40,10 +40,7 @@
       </div>
     </div> -->
 
-    <AppForgotPasswordForm
-      v-if="!success"
-      @requestReset="requestReset($event)"
-    ></AppForgotPasswordForm>
+    <ForgotPasswordForm v-if="!success" @requestReset="requestReset($event)"></ForgotPasswordForm>
   </div>
 </template>
 
@@ -51,7 +48,7 @@
 import { ref } from 'vue'
 import { authApi } from '@/api/auth'
 import AppError from '../components/AppError.vue'
-import AppForgotPasswordForm from '@/components/AppForgotPasswordForm.vue'
+import ForgotPasswordForm from '@/components/ForgotPasswordForm.vue'
 
 const error = ref('')
 const success = ref('')

@@ -1,11 +1,11 @@
 <template>
-  <app-user-view
+  <UserView
     v-if="viewUserDocuments"
     :username="userUsername"
     :documents="userDocuments"
     @close="viewUserDocuments = false"
   >
-  </app-user-view>
+  </UserView>
   <div class="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen relative">
     <app-error v-if="error || success" :error="error" :success="success" @close="clearError()">
     </app-error>
@@ -171,7 +171,7 @@ import { deleteUser, getUsers } from '@/api/user'
 import { onMounted, ref, computed } from 'vue'
 import { getUserDocuments } from '@/api/user'
 import AppError from './AppError.vue'
-import AppUserView from './AppUserView.vue'
+import UserView from './UserView.vue'
 
 const error = ref('')
 const success = ref('')

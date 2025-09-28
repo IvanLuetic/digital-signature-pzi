@@ -4,6 +4,7 @@ import { useDocumentStore } from '@/stores/document'
 export const getDocuments = async () => {
   const documentStore = useDocumentStore()
   const response = await apiConfig.get('/document')
+  console.log(response)
   const userDocuments = response.data.data
   documentStore.documents = userDocuments
   /* const testDocument = {
@@ -21,12 +22,16 @@ export const getDocuments = async () => {
   return
 }
 
-export const signDocument = async (document) => {
-  return await apiConfig.post('/document/sign ', document)
+export const signDocument = async (formData) => {
+  return await apiConfig.post('/document/sign ', formData)
 }
 
 export const downloadDocument = async (id) => {
   return await apiConfig.get(`/document/download/${id}`)
+}
+
+export const verifyDocument = async (document) => {
+  return await apiConfig.post(`/document/checker/`, document)
 }
 
 export const deleteDocument = async (documentId) => {

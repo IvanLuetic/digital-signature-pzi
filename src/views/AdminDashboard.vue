@@ -1,9 +1,9 @@
 <template>
   <AppHeader></AppHeader>
-  <AppAdminDashboard></AppAdminDashboard>
+  <AdminDashboard></AdminDashboard>
 </template>
 
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
-import AppAdminDashboard from '@/components/AppAdminDashboard.vue'
+import AdminDashboard from '@/components/AdminDashboard.vue'
 </script>

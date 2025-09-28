@@ -6,17 +6,17 @@
       @close="clearError()"
     >
     </app-error>
-    <AppAuthForm
+    <AuthForm
       :isLogin="isLogin"
       :errorMessages="errorMessages"
       @changePage="isLogin = !isLogin"
       @submit="handleSubmit($event)"
-    ></AppAuthForm>
+    ></AuthForm>
   </div>
 </template>
 
 <script setup>
-import AppAuthForm from '@/components/AppAuthForm.vue'
+import AuthForm from '@/components/AuthForm.vue'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'

@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center mx-4">
     <app-error v-if="error || success" :error="error" :success="success" @close="clearError()">
     </app-error>
-    <AppResetPasswordForm @resetPassword="resetPassword($event)"></AppResetPasswordForm>
+    <ResetPasswordForm @resetPassword="resetPassword($event)"></ResetPasswordForm>
   </div>
 </template>
 
@@ -11,7 +11,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
 import AppError from '../components/AppError.vue'
-import AppResetPasswordForm from '@/components/AppResetPasswordForm.vue'
+import ResetPasswordForm from '@/components/ResetPasswordForm.vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()

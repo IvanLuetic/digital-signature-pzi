@@ -1,10 +1,10 @@
 <template>
-  <app-sign-document-form
+  <SignDocForm
     v-if="isSignDocumentFormOpen"
     @close="isSignDocumentFormOpen = false"
     @sign="handleSignDocument($event)"
     :keys="publicKeys"
-  ></app-sign-document-form>
+  ></SignDocForm>
 
   <div class="py-6 px-0 text-center">
     <h1 class="font-bold mb-2 mx-auto">Upload document to sign</h1>
@@ -117,7 +117,7 @@
 import { downloadDocument, getPublicKeys, signDocument } from '@/api/document'
 import * as pdfjsLib from 'pdfjs-dist'
 import { ref } from 'vue'
-import AppSignDocumentForm from './AppSignDocumentForm.vue'
+import SignDocForm from './SignDocForm.vue'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
 
 const emit = defineEmits(['message'])
@@ -220,7 +220,6 @@ const handleSignDocument = async (data) => {
         message: 'Document signed succesfuly!',
       })
       isSigned.value = true
-      isSignDocumentFormOpen.value = false
     } catch (error) {
       console.error('Error signing document', error)
       emit('message', {
@@ -229,6 +228,7 @@ const handleSignDocument = async (data) => {
       })
     } finally {
       isSigning.value = false
+      isSignDocumentFormOpen.value = false
     }
   } else {
     alert('Please upload a document to sign')

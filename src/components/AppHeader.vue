@@ -1,5 +1,5 @@
 <template>
-  <nav class="bg-blue-600 text-white sticky top-0 z-10 shadow-md">
+  <nav class="bg-blue-600 text-white sticky top-0 z-10 shadow-black/25 shadow-xl">
     <div class="mx-auto px-5 sm:px-25">
       <div class="flex items-center justify-between h-16">
         <router-link
@@ -14,17 +14,20 @@
         <div class="hidden sm:flex items-center space-x-4">
           <template v-if="!userStore.currentUser">
             <a href="#about" class="hover:text-blue-100 px-3 py-2 transition-colors">About</a>
-            <router-link to="/auth" class="hover:text-blue-100 px-3 py-2 transition-colors">
-              Log in
+            <router-link to="/verify" class="hover:text-blue-100 px-3 py-2 transition-colors">
+              Verify a document
             </router-link>
             <router-link to="/auth" class="hover:text-blue-100 px-3 py-2 transition-colors">
-              Register
+              Log in
             </router-link>
           </template>
 
           <template v-else-if="userStore.currentUser.role === 'user'">
             <router-link to="/sign" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Sign document
+            </router-link>
+            <router-link to="/verify" class="hover:text-blue-100 px-3 py-2 transition-colors">
+              Verify document
             </router-link>
 
             <router-link

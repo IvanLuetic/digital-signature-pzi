@@ -1,12 +1,5 @@
 <template>
-  <!--  <div class="py-5 text-center">
-    <h1 class="font-bold mb-2 max-w-140 mx-auto">Secure Digital Signatures Made Simple</h1>
-    <h4 class="text-gray-800 max-w-160 mx-auto">
-      The fastest way to sign documents online—legally valid, universally accepted.
-    </h4>
-  </div> -->
-
-  <div class="relative h-[100vh] overflow-hidden mt-0 -mx-4">
+  <div class="relative h-[100vh] overflow-hidden mt-0 -mx-4 shadow-lg shadow-black/40">
     <div class="absolute inset-0 bg-black/70"></div>
     <img
       src="https://www.shutterstock.com/image-photo/businessman-using-paperless-electronic-signature-600nw-2481260731.jpg"
