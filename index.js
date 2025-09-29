@@ -115,7 +115,7 @@ api.post('/auth/login', (req, res) => {
       if (err || !valid) return res.status(400).json({ message: 'Invalid credentials' });
       generateToken(user, (err, token) => {
         if (err) return res.status(500).json({ message: 'Error generating token' });
-        res.status(200).json({ user: { id: user.id, username: user.username, email: user.email }, token });
+        res.status(200).json({ user: { id: user.id, username: user.username, email: user.email, role: user.role }, token });
       });
     });
   });
@@ -123,7 +123,7 @@ api.post('/auth/login', (req, res) => {
 
 // /auth/me
 api.get('/auth/me', authJWT, (req, res) => {
-  apiDB.query("SELECT id, username, email, join_date FROM users WHERE id=?", [req.user.id], (err, result) => {
+  apiDB.query("SELECT id, username, email, join_date, role FROM users WHERE id=?", [req.user.id], (err, result) => {
     if (err) return res.status(500).json({ message: 'Server error' });
     res.status(200).json({ user: result[0] });
   });
@@ -216,7 +216,7 @@ api.post('/auth/change-password', authJWT, async (req, res) => {
     res.status(200).json({ message: 'PGP key deleted' });
   });
 });*/
-// index.js
+
 api.get('/pgp', authJWT, (req, res) => {
   apiDB.query(
     "SELECT id, public_key FROM pgp WHERE user_id=?",
@@ -305,17 +305,27 @@ api.get('/document/download/:id', authJWT, (req, res) => {
       if (err) return res.status(500).json({ message: 'Server error' });
       if (results.length === 0) return res.status(404).json({ message: 'File not found or not owned by user' });
 
-      const filePath = path.join(__dirname, results[0].signed_file_url);
+      const filePath = results[0].signed_file_url;
       const sigPath = filePath + '.sig';
+
       if (!fs.existsSync(filePath) || !fs.existsSync(sigPath))
         return res.status(404).json({ message: 'File or signature not found on server' });
 
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', 'attachment; filename=document.zip');
-      const archive = archiver('zip');
+      res.flushHeaders();
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      archive.on('error', err => {
+        res.status(500).end();
+      });
+
       archive.pipe(res);
-      archive.file(filePath, { name: path.basename(filePath) });
-      archive.file(sigPath, { name: path.basename(sigPath) });
+
+      archive.file(filePath, { name: 'document' });
+      archive.file(sigPath, { name: 'document.sig' });
+
       archive.finalize();
     }
   );
