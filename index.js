@@ -259,38 +259,14 @@ api.patch('/users/profile', authJWT, (req, res) => {
 });
 
 // /document (GET)
-api.get("/document/:id", authJWT, (req, res) => {
-  const { id } = req.params;
+// /document (GET)
+api.get("/document", authJWT, (req, res) => {
   apiDB.query(
-    "SELECT signed_file_url, size, signed_at FROM signed_documents WHERE id=? AND user_id=?",
-    [id, req.user.id],
+    "SELECT * FROM signed_documents WHERE user_id=?",
+    [req.user.id],
     (err, results) => {
       if (err) return res.status(500).json({ message: "Server error" });
-      if (results.length === 0)
-        return res.status(404).json({ message: "File not found or not owned by user" });
-
-      const { signed_file_url, size, signed_at } = results[0];
-      if (!fs.existsSync(signed_file_url))
-        return res.status(404).json({ message: "File not found on server" });
-
-      // Format filename
-      const baseName = path.basename(signed_file_url);
-      const formattedName = baseName.split('_').slice(2).join('_');
-
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `inline; filename="${formattedName}"`);
-      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, X-Filesize, X-Signing-Date, X-Filename");
-      res.setHeader("X-Filesize", size);
-      res.setHeader("X-Signing-Date", signed_at);
-      res.setHeader("X-Filename", formattedName);
-
-      const fileStream = fs.createReadStream(signed_file_url);
-      fileStream.pipe(res);
-
-      fileStream.on("error", (error) => {
-        console.error("Error streaming file:", error);
-        res.status(500).json({ message: "Error reading file" });
-      });
+      res.status(200).json({ data: results });
     }
   );
 });
@@ -366,50 +342,40 @@ api.post("/document/sign", authJWT, documentUpload.single("file"), async (req, r
         }
       });
   });
-// /document/download/:id (GET)
-api.get('/document/download/:id', authJWT, (req, res) => {
+// /document/:id (GET)
+api.get("/document/:id", authJWT, (req, res) => {
   const { id } = req.params;
   apiDB.query(
     "SELECT signed_file_url FROM signed_documents WHERE id=? AND user_id=?",
     [id, req.user.id],
     (err, results) => {
-      if (err) return res.status(500).json({ message: 'Server error' });
-      if (results.length === 0) return res.status(404).json({ message: 'File not found or not owned by user' });
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (results.length === 0)
+        return res
+          .status(404)
+          .json({ message: "File not found or not owned by user" });
 
       const filePath = results[0].signed_file_url;
-      const sigPath = filePath + '.sig';
 
-      if (!fs.existsSync(filePath) || !fs.existsSync(sigPath))
-        return res.status(404).json({ message: 'File or signature not found on server' });
+      if (!fs.existsSync(filePath))
+        return res.status(404).json({ message: "File not found on server" });
 
-      apiDB.query(
-        "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
-        [req.user.id, 'download_document', JSON.stringify({ document_id: id, file: filePath })]
-      );
+      const fileName = path.basename(filePath);
+      const contentType = mime.lookup(filePath);
 
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename=document.zip');
-      res.flushHeaders();
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", inline; filename="${fileName}");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
 
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      archive.on('error', err => {
-        res.status(500).end();
+      fileStream.on("error", (error) => {
+        console.error("Error streaming file:", error);
+        res.status(500).json({ message: "Error reading file" });
       });
-
-      archive.pipe(res);
-      function extractDocName(filePath) {
-        const baseName = path.basename(filePath);
-        return baseName.split('_').slice(2).join('_');
-      }
-      archive.file(filePath, { name: extractDocName(filePath) });
-      archive.file(sigPath, { name: extractDocName(sigPath) });
-
-      archive.finalize();
     }
   );
 });
-
 // /document/:id (DELETE)
 api.delete('/document/:id', authJWT, (req, res) => {
   const { id } = req.params;
@@ -438,10 +404,8 @@ api.delete('/document/:id', authJWT, (req, res) => {
             [req.user.id, 'delete_document', JSON.stringify({ document_id: id, file: filePath })]
           );
           res.status(200).json({ message: 'Document deleted' });
-        }
-      );
-    }
-  );
+        });
+    });
 });
 
 // /document/checker (POST)
