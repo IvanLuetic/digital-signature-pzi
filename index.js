@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs');
+const AdmZip = require('adm-zip');
 
 const api = express();
 api.use(cors({ origin: "http://localhost:5173", credentials: true }));
@@ -51,19 +52,15 @@ const requireAdmin = (req, res, next) => {
   });
 };
 
-// Ensure chkdir exists
-const chkdir = path.join(__dirname, 'chkdir');
-if (!fs.existsSync(chkdir)) fs.mkdirSync(chkdir);
-
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 // Multer config for checker uploads
-const checkerUpload = multer({ dest: chkdir });
+const checkerUpload = multer({ storage: multer.memoryStorage()});
 
 // Add multer config for document uploads
-const documentUpload = multer({ dest: uploadDir });
+const documentUpload = multer({ storage: multer.memoryStorage()});
 
 
 // /auth/signup
@@ -77,6 +74,10 @@ api.post('/auth/signup', async (req, res) => {
       async (err, result) => {
         if (err) return res.status(500).json({ message: 'Error creating user' });
         const userId = result?.insertId || result[0]?.insertId;
+        apiDB.query(
+          "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+          [userId, 'signup', JSON.stringify({ username, email })]
+        );
         // Generate PGP keypair and encrypt private key with password
         try {
           const { privateKey, publicKey } = await openpgp.generateKey({
@@ -113,6 +114,10 @@ api.post('/auth/login', (req, res) => {
     const user = results[0];
     bcrypt.compare(password, user.password_hash, (err, valid) => {
       if (err || !valid) return res.status(400).json({ message: 'Invalid credentials' });
+      apiDB.query(
+        "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+        [user.id, 'login', JSON.stringify({ username })]
+      );
       generateToken(user, (err, token) => {
         if (err) return res.status(500).json({ message: 'Error generating token' });
         res.status(200).json({ user: { id: user.id, username: user.username, email: user.email, role: user.role }, token });
@@ -131,6 +136,10 @@ api.get('/auth/me', authJWT, (req, res) => {
 
 // /auth/logout
 api.post('/auth/logout', authJWT, (req, res) => {
+  apiDB.query(
+    "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+    [req.user.id, 'logout', '{}']
+  );
   res.status(200).json({ message: 'Logged out' });
 });
 
@@ -161,6 +170,10 @@ api.post('/auth/change-password', authJWT, async (req, res) => {
             if (err) return res.status(500).json({ message: 'Error updating password' });
             apiDB.query("UPDATE pgp SET encrypted_private_key=? WHERE id=?", [reEncryptedKey, pgpId], (err) => {
               if (err) return res.status(500).json({ message: 'Error updating PGP key' });
+              apiDB.query(
+                "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+                [req.user.id, 'change_password', '{}']
+              );
               res.status(200).json({ message: 'Password and PGP key updated successfully' });
             });
           });
@@ -236,6 +249,10 @@ api.patch('/users/profile', authJWT, (req, res) => {
     [username, email, req.user.id],
     (err) => {
       if (err) return res.status(500).json({ message: 'Server error' });
+      apiDB.query(
+        "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+        [req.user.id, 'update_profile', JSON.stringify({ username, email })]
+      );
       res.status(200).json({ message: 'Profile updated' });
     }
   );
@@ -250,51 +267,76 @@ api.get('/document', authJWT, (req, res) => {
 });
 
 // /document/sign (POST)
-api.post('/document/sign', authJWT, documentUpload.single('file'), async (req, res) => {
-  const { public_key_id, password } = req.body;
-  if (!req.file || !public_key_id || !password) {
-    return res.status(400).json({ message: 'File, public_key_id, and password required' });
-  }
-
-  // Get encrypted private key
-  apiDB.query("SELECT encrypted_private_key FROM pgp WHERE id=? AND user_id=?", [public_key_id, req.user.id], async (err, rows) => {
-    if (err || rows.length === 0) return res.status(400).json({ message: 'PGP key not found' });
-    try {
-      const privateKeyObj = await openpgp.decryptKey({
-        privateKey: await openpgp.readPrivateKey({ armoredKey: rows[0].encrypted_private_key }),
-        passphrase: password
-      });
-
-      const fileBuffer = fs.readFileSync(req.file.path);
-      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-      const message = await openpgp.createMessage({ binary: fileBuffer });
-      const signature = await openpgp.sign({
-        message,
-        signingKeys: privateKeyObj,
-        detached: true
-      });
-
-      // Save signature to file
-      const sigPath = req.file.path + '.sig';
-      fs.writeFileSync(sigPath, signature);
-
-      // Store metadata in DB
-      apiDB.query(
-        "INSERT INTO signed_documents (unsigned_file_hash, signed_file_url, user_id, public_key_id) VALUES (?, ?, ?, ?)",
-        [fileHash, req.file.path, req.user.id, public_key_id],
-        (err, result) => {
-          if (err) return res.status(500).json({ message: 'Server error' });
-          res.status(201).json({ id: result.insertId, signed_file_url: req.file.path, signature_url: sigPath });
-        }
-      );
-    } catch (e) {
-      fs.unlink(req.file.path, () => {});
-      fs.unlink(req.file.path + '.sig', () => {});
-      return res.status(500).json({ message: 'Signing failed' });
+api.post("/document/sign", authJWT, documentUpload.single("file"), async (req, res) => {
+    const { public_key_id, password } = req.body;
+    if (!req.file || !public_key_id || !password) {
+      return res
+        .status(400)
+        .json({ message: "File, public_key_id, and password required" });
     }
-  });
-});
 
+    // Get encrypted private key
+    apiDB.query(
+      "SELECT encrypted_private_key FROM pgp WHERE id=? AND user_id=?",
+      [public_key_id, req.user.id],
+      async (err, rows) => {
+        if (err || rows.length === 0)
+          return res.status(400).json({ message: "PGP key not found" });
+        try {
+          const privateKeyObj = await openpgp.decryptKey({
+            privateKey: await openpgp.readPrivateKey({
+              armoredKey: rows[0].encrypted_private_key,
+            }),
+            passphrase: password,
+          });
+
+          // Use the buffer from memory storage
+          const fileBuffer = req.file.buffer;
+          const fileHash = crypto
+            .createHash("sha256")
+            .update(fileBuffer)
+            .digest("hex");
+          const message = await openpgp.createMessage({ binary: fileBuffer });
+          const signature = await openpgp.sign({
+            message,
+            signingKeys: privateKeyObj,
+            detached: true,
+          });
+
+          // Generate unique file paths for storage
+          const fileName = `doc_${Date.now()}_${req.file.originalname}`;
+          const filePath = path.join(uploadDir, fileName);
+          const sigPath = filePath + ".sig";
+
+          // Write both files to disk for storage
+          fs.writeFileSync(filePath, fileBuffer); // Write original file
+          fs.writeFileSync(sigPath, signature); // Write signature
+
+          // Store metadata in DB
+          apiDB.query(
+            "INSERT INTO signed_documents (unsigned_file_hash, signed_file_url, user_id, size, public_key_id) VALUES (?, ?, ?, ?, ?)",
+            [fileHash, filePath, req.user.id, fileBuffer.length, public_key_id], // Use the new filePath
+            (err, result) => {
+              if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Server error" });
+              }
+              apiDB.query(
+                "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+                [req.user.id, 'add_document', JSON.stringify({ document_id: result.insertId, file: filePath , size: fileBuffer.length})]
+              );
+              res.status(201).json({
+                id: result.insertId,
+                signed_file_url: filePath, // Use the new filePath
+                signature_url: sigPath,
+              });
+            });
+        } catch (e) {
+          console.error(e);
+          return res.status(500).json({ message: "Signing failed" });
+        }
+      });
+  });
 // /document/download/:id (GET)
 api.get('/document/download/:id', authJWT, (req, res) => {
   const { id } = req.params;
@@ -310,6 +352,11 @@ api.get('/document/download/:id', authJWT, (req, res) => {
 
       if (!fs.existsSync(filePath) || !fs.existsSync(sigPath))
         return res.status(404).json({ message: 'File or signature not found on server' });
+
+      apiDB.query(
+        "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+        [req.user.id, 'download_document', JSON.stringify({ document_id: id, file: filePath })]
+      );
 
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', 'attachment; filename=document.zip');
@@ -354,6 +401,10 @@ api.delete('/document/:id', authJWT, (req, res) => {
         [id, req.user.id],
         (err) => {
           if (err) return res.status(500).json({ message: 'Server error' });
+          apiDB.query(
+            "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+            [req.user.id, 'delete_document', JSON.stringify({ document_id: id, file: filePath })]
+          );
           res.status(200).json({ message: 'Document deleted' });
         }
       );
@@ -362,30 +413,29 @@ api.delete('/document/:id', authJWT, (req, res) => {
 });
 
 // /document/checker (POST)
-api.post('/document/checker', checkerUpload.fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'signature', maxCount: 1 }]
-), async (req, res) => {
-  if (!req.files?.file || !req.files?.signature) {
-    return res.status(400).json({ message: 'File and signature required' });
+api.post('/document/checker', checkerUpload.single('zip'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'Zip file required' });
   }
 
-  const filePath = req.files.file[0].path;
-  const sigPath = req.files.signature[0].path;
-  let responseSent = false;
+  const zip = new AdmZip(req.file.buffer);
+  const entries = zip.getEntries();
+
+  const sigEntry = entries.find(e => e.entryName.endsWith('.sig'));
+  const docEntry = entries.find(e => !e.entryName.endsWith('.sig'));
+
+  if (!sigEntry || !docEntry) {
+    return res.status(400).json({ message: 'Zip must contain a document and a .sig file' });
+  }
+
+  const fileBuffer = docEntry.getData();
+  const signatureArmored = sigEntry.getData().toString('utf8');
 
   try {
-    const fileBuffer = fs.readFileSync(filePath);
-    const signatureArmored = fs.readFileSync(sigPath, 'utf8');
-
     apiDB.query(
       "SELECT users.username, pgp.public_key FROM pgp JOIN users ON pgp.user_id = users.id",
       async (err, rows) => {
-        if (err) {
-          if (!responseSent) res.status(500).json({ message: 'Database error' });
-          responseSent = true;
-          return;
-        }
+        if (err) return res.status(500).json({ message: 'Database error' });
 
         for (const row of rows) {
           try {
@@ -396,21 +446,17 @@ api.post('/document/checker', checkerUpload.fields([
             });
             const validity = await verified.signatures[0].verified;
             if (validity) {
-              if (!responseSent) res.status(200).json({ signer_username: row.username, message: 'Signature matches this user' });
-              responseSent = true;
-              return;
+              return res.status(200).json({ signer_username: row.username, message: 'Signature matches this user' });
             }
           } catch (e) {
             // Ignore failed verifications
           }
         }
-        if (!responseSent) res.status(404).json({ message: 'No matching signer found' });
-        responseSent = true;
-      });
-  } finally {
-    // Clean up checker files
-    fs.unlink(filePath, () => {});
-    fs.unlink(sigPath, () => {});
+        return res.status(404).json({ message: 'No matching signer found' });
+      }
+    );
+  } catch (e) {
+    return res.status(500).json({ message: 'Verification failed' });
   }
 });
 // Admin routes
@@ -458,6 +504,10 @@ api.delete('/admin/user/:id', authJWT, requireAdmin, (req, res) => {
       // Delete user
       apiDB.query("DELETE FROM users WHERE id=?", [userId], (err) => {
         if (err) return res.status(500).json({ message: 'Error deleting user' });
+        apiDB.query(
+          "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+          [req.user.id, 'admin_delete_user', JSON.stringify({ deleted_user_id: userId })]
+        );
         res.status(200).json({ message: 'User deleted' });
       });
     });
