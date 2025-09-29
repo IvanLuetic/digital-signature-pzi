@@ -438,7 +438,7 @@ api.delete('/document/:id', authJWT, (req, res) => {
     });
 });
 
-/ /document/checker (POST)
+//document/checker (POST)
 api.post(
   "/document/checker",
   checkerUpload.single("file"),
