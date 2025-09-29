@@ -259,7 +259,6 @@ api.patch('/users/profile', authJWT, (req, res) => {
 });
 
 // /document (GET)
-// /document (GET)
 api.get("/document", authJWT, (req, res) => {
   apiDB.query(
     "SELECT * FROM signed_documents WHERE user_id=?",
@@ -267,6 +266,36 @@ api.get("/document", authJWT, (req, res) => {
     (err, results) => {
       if (err) return res.status(500).json({ message: "Server error" });
       res.status(200).json({ data: results });
+    }
+  );
+});
+// /document/download/:id (GET)
+api.get("/document/download/:id", authJWT, (req, res) => {
+  const { id } = req.params;
+  apiDB.query(
+    "SELECT signed_file_url FROM signed_documents WHERE id=? AND user_id=?",
+    [id, req.user.id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (results.length === 0)
+        return res
+          .status(404)
+          .json({ message: "File not found or not owned by user" });
+
+      const filePath = results[0].signed_file_url;
+      const sigPath = filePath + ".sig";
+      if (!fs.existsSync(filePath) || !fs.existsSync(sigPath))
+        return res
+          .status(404)
+          .json({ message: "File or signature not found on server" });
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", "attachment; filename=document.zip");
+      const archive = archiver("zip");
+      archive.pipe(res);
+      archive.file(filePath, { name: path.basename(filePath) });
+      archive.file(sigPath, { name: path.basename(sigPath) });
+      archive.finalize();
     }
   );
 });
@@ -364,7 +393,7 @@ api.get("/document/:id", authJWT, (req, res) => {
       const contentType = mime.lookup(filePath);
 
       res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Disposition", inline; filename="${fileName}");
+      res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
       res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
       const fileStream = fs.createReadStream(filePath);
       fileStream.pipe(res);
