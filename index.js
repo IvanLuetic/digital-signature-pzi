@@ -485,8 +485,7 @@ api.post('/document/checker', checkerUpload.single('file'), async (req, res) => 
           }
         }
         return res.status(404).json({ message: 'No matching signer found' });
-      }
-    );
+      });
   } catch (e) {
     return res.status(500).json({ message: 'Verification failed' });
   }
@@ -556,8 +555,8 @@ api.delete('/admin/user/:id', authJWT, requireAdmin, (req, res) => {
   });
 });
 
-api.get(/audit_log/, authJWT, requireAdmin, (req, res) => {
-  apiDB.query("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 100", (err, results) => {
+api.get("/audit_log", authJWT, requireAdmin, (req, res) => {
+  apiDB.query("SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100", (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' });
     res.status(200).json({ logs: results });
   });
