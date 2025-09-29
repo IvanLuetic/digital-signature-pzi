@@ -438,64 +438,109 @@ api.delete('/document/:id', authJWT, (req, res) => {
     });
 });
 
-// /document/checker (POST)
-api.post('/document/checker', checkerUpload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'Zip file required' });
-  }
+/ /document/checker (POST)
+api.post(
+  "/document/checker",
+  checkerUpload.single("file"),
+  async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "Zip file required" });
+    }
 
-  const zip = new AdmZip(req.file.buffer);
-  const entries = zip.getEntries();
+    const zip = new AdmZip(req.file.buffer);
+    const entries = zip.getEntries();
 
-  const sigEntry = entries.find(e => e.entryName.endsWith('.sig'));
-  const docEntry = entries.find(e => !e.entryName.endsWith('.sig'));
+    const sigEntry = entries.find((e) => e.entryName.endsWith(".sig"));
+    const docEntry = entries.find((e) => !e.entryName.endsWith(".sig"));
 
-  if (!sigEntry || !docEntry) {
-    return res.status(400).json({ message: 'Zip must contain a document and a .sig file' });
-  }
+    if (!sigEntry || !docEntry) {
+      return res
+        .status(400)
+        .json({ message: "Zip must contain a document and a .sig file" });
+    }
 
-  const fileBuffer = docEntry.getData();
-  const signatureArmored = sigEntry.getData().toString('utf8');
+    const fileBuffer = docEntry.getData();
+    const signatureArmored = sigEntry.getData().toString("utf8");
 
-  try {
-    apiDB.query(
-      "SELECT users.username, pgp.public_key FROM pgp JOIN users ON pgp.user_id = users.id",
-      async (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Database error' });
+    // Calculate file hash to find the matching document
+    const fileHash = crypto
+      .createHash("sha256")
+      .update(fileBuffer)
+      .digest("hex");
 
-        for (const row of rows) {
-          try {
-            const verified = await openpgp.verify({
-              message: await openpgp.createMessage({ binary: fileBuffer }),
-              signature: await openpgp.readSignature({ armoredSignature: signatureArmored }),
-              verificationKeys: await openpgp.readKey({ armoredKey: row.public_key })
-            });
-            const validity = await verified.signatures[0].verified;
-            if (validity) {
-              return res.status(200).json({ signer_username: row.username, message: 'Signature matches this user' });
-            }
-          } catch (e) {
-            // Ignore failed verifications
+    try {
+      apiDB.query(
+        `SELECT 
+           users.username, 
+           pgp.public_key, 
+           signed_documents.signed_at 
+         FROM pgp 
+         JOIN users ON pgp.user_id = users.id 
+         JOIN signed_documents ON signed_documents.public_key_id = pgp.id 
+         WHERE signed_documents.unsigned_file_hash = ?`,
+        [fileHash],
+        async (err, rows) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Database error" });
           }
+
+          for (const row of rows) {
+            try {
+              const verified = await openpgp.verify({
+                message: await openpgp.createMessage({ binary: fileBuffer }),
+                signature: await openpgp.readSignature({
+                  armoredSignature: signatureArmored,
+                }),
+                verificationKeys: await openpgp.readKey({
+                  armoredKey: row.public_key,
+                }),
+              });
+              const validity = await verified.signatures[0].verified;
+              if (validity) {
+                return res.status(200).json({
+                  signer_username: row.username,
+                  signed_at: row.signed_at,
+                  message: "Signature matches this user",
+                });
+              }
+            } catch (e) {
+              // Ignore failed verifications
+            }
+          }
+          return res.status(404).json({ message: "No matching signer found" });
         }
-        return res.status(404).json({ message: 'No matching signer found' });
-      });
-  } catch (e) {
-    return res.status(500).json({ message: 'Verification failed' });
+      );
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ message: "Verification failed" });
+    }
   }
-});
+);
 // Admin routes
 // List all users (for admin dashboard)
-api.get('/admin/users', authJWT, requireAdmin, (req, res) => {
-  apiDB.query(
-    "SELECT id, username, email, join_date FROM users ORDER BY join_date DESC",
-    (err, results) => {
-      if (err) return res.status(500).json({ message: 'Server error' });
-      res.status(200).json({ users: results });
-    }
-  );
-});
+api.get("/admin/users", authJWT, requireAdmin, (req, res) => {
+  const page = req.query.page || 1;
+  const limit = 12;
+  const offset = (page - 1) * limit;
+  apiDB.query("SELECT COUNT(*) as total FROM users", (err, countResults) => {
+    if (err) return res.status(500).json({ message: "Server error" });
 
+    const totalUsers = countResults[0].total;
+    apiDB.query(
+      "SELECT id, username, email, join_date FROM users ORDER BY join_date DESC LIMIT ? OFFSET ?",
+      [limit, offset],
+      (err, results) => {
+        if (err) return res.status(500).json({ message: "Server error" });
+
+        res.status(200).json({
+          users: results,
+          totalUsers: totalUsers,
+        });
+      }
+    );
+  });
+});
 // Get a user's document signing history
 api.get('/admin/user/:id/documents', authJWT, requireAdmin, (req, res) => {
   const userId = req.params.id;
