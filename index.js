@@ -12,6 +12,7 @@ const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs');
 const AdmZip = require('adm-zip');
+const mime = require('mime-types');
 
 const api = express();
 api.use(cors({ origin: "http://localhost:5173", credentials: true }));
