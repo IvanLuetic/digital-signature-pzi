@@ -259,11 +259,40 @@ api.patch('/users/profile', authJWT, (req, res) => {
 });
 
 // /document (GET)
-api.get('/document', authJWT, (req, res) => {
-  apiDB.query("SELECT * FROM signed_documents WHERE user_id=?", [req.user.id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' });
-    res.status(200).json({ data: results });
-  });
+api.get("/document/:id", authJWT, (req, res) => {
+  const { id } = req.params;
+  apiDB.query(
+    "SELECT signed_file_url, size, signed_at FROM signed_documents WHERE id=? AND user_id=?",
+    [id, req.user.id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (results.length === 0)
+        return res.status(404).json({ message: "File not found or not owned by user" });
+
+      const { signed_file_url, size, signed_at } = results[0];
+      if (!fs.existsSync(signed_file_url))
+        return res.status(404).json({ message: "File not found on server" });
+
+      // Format filename
+      const baseName = path.basename(signed_file_url);
+      const formattedName = baseName.split('_').slice(2).join('_');
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${formattedName}"`);
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, X-Filesize, X-Signing-Date, X-Filename");
+      res.setHeader("X-Filesize", size);
+      res.setHeader("X-Signing-Date", signed_at);
+      res.setHeader("X-Filename", formattedName);
+
+      const fileStream = fs.createReadStream(signed_file_url);
+      fileStream.pipe(res);
+
+      fileStream.on("error", (error) => {
+        console.error("Error streaming file:", error);
+        res.status(500).json({ message: "Error reading file" });
+      });
+    }
+  );
 });
 
 // /document/sign (POST)
@@ -369,9 +398,12 @@ api.get('/document/download/:id', authJWT, (req, res) => {
       });
 
       archive.pipe(res);
-
-      archive.file(filePath, { name: 'document' });
-      archive.file(sigPath, { name: 'document.sig' });
+      function extractDocName(filePath) {
+        const baseName = path.basename(filePath);
+        return baseName.split('_').slice(2).join('_');
+      }
+      archive.file(filePath, { name: extractDocName(filePath) });
+      archive.file(sigPath, { name: extractDocName(sigPath) });
 
       archive.finalize();
     }
@@ -413,7 +445,7 @@ api.delete('/document/:id', authJWT, (req, res) => {
 });
 
 // /document/checker (POST)
-api.post('/document/checker', checkerUpload.single('zip'), async (req, res) => {
+api.post('/document/checker', checkerUpload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Zip file required' });
   }
@@ -501,16 +533,33 @@ api.delete('/admin/user/:id', authJWT, requireAdmin, (req, res) => {
     });
     apiDB.query("DELETE FROM signed_documents WHERE user_id=?", [userId], (err) => {
       if (err) return res.status(500).json({ message: 'Error deleting documents' });
-      // Delete user
-      apiDB.query("DELETE FROM users WHERE id=?", [userId], (err) => {
-        if (err) return res.status(500).json({ message: 'Error deleting user' });
-        apiDB.query(
-          "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
-          [req.user.id, 'admin_delete_user', JSON.stringify({ deleted_user_id: userId })]
-        );
-        res.status(200).json({ message: 'User deleted' });
+      // Fetch and log public keys before deleting
+      apiDB.query("SELECT public_key FROM pgp WHERE user_id=?", [userId], (err, keyRows) => {
+        const publicKeys = keyRows?.map(row => row.public_key) || [];
+        apiDB.query("DELETE FROM pgp WHERE user_id=?", [userId], (err) => {
+          if (err) return res.status(500).json({ message: 'Error deleting PGP keys' });
+          // Delete user
+          apiDB.query("DELETE FROM users WHERE id=?", [userId], (err) => {
+            if (err) return res.status(500).json({ message: 'Error deleting user' });
+            apiDB.query(
+              "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+              [req.user.id, 'admin_delete_user', JSON.stringify({ deleted_user_id: userId, public_keys: publicKeys })],
+              (err) => {
+                if (err) return res.status(500).json({ message: 'Error logging audit' });
+                res.status(200).json({ message: 'User deleted' });
+              }
+            );
+          });
+        });
       });
     });
+  });
+});
+
+api.get(/audit_log/, authJWT, requireAdmin, (req, res) => {
+  apiDB.query("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 100", (err, results) => {
+    if (err) return res.status(500).json({ message: 'Server error' });
+    res.status(200).json({ logs: results });
   });
 });
 api.listen(5001, "localhost", () => {
