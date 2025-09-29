@@ -4,7 +4,7 @@
   <DocumentModal
     v-if="showDocumentModal"
     @close-modal="showDocumentModal = false"
-    :document="documentToView"
+    :id="documentId"
   ></DocumentModal>
   <UserProfile @editProfile="showEditModal = true" @viewDocument="handleView($event)"></UserProfile>
 </template>
@@ -18,10 +18,10 @@ import DocumentModal from '@/components/DocumentModal.vue'
 
 const showEditModal = ref(false)
 const showDocumentModal = ref(false)
-const documentToView = ref({})
+const documentId = ref({})
 
-const handleView = (document) => {
-  documentToView.value = document
+const handleView = (id) => {
+  documentId.value = id
   showDocumentModal.value = true
 }
 </script>

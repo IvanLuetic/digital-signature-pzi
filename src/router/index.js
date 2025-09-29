@@ -59,9 +59,9 @@ router.beforeEach(async (to, from, next) => {
 
   try {
     //initalize user on every page load
-    if (!userStore.currentUser) {
-      await userStore.initializeUser()
-    }
+
+    await userStore.initializeUser()
+
     //protected routes
     if (to.meta.requiresAuth && !userStore.currentUser) {
       next('/auth')

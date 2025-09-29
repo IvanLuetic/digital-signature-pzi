@@ -147,8 +147,11 @@
                     ></path>
                   </svg>
                   <h5 class="font-semibold truncate text-gray-900">
-                    {{ document.file.originalname }}
+                    {{ formatName(document.signed_file_url) }}
                   </h5>
+                  <!-- <h5 class="font-semibold truncate text-gray-900">
+                    {{ document.file.size }}
+                  </h5> -->
                 </div>
 
                 <div class="flex items-center space-x-6 text-sm text-gray-600">
@@ -166,14 +169,14 @@
                         d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-4 8a3 3 0 01-3-3V8a3 3 0 016 0v4a3 3 0 01-3 3z"
                       ></path>
                     </svg>
-                    <span>Signed {{ formatDate(document.file.signed_at) }}</span>
+                    <span>Signed {{ formatDate(document.signed_at) }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="flex items-center space-x-2 ml-4">
                 <button
-                  @click="$emit('viewDocument', document)"
+                  @click="$emit('viewDocument', document.id)"
                   class="p-2 cursor-pointer text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                   title="View Document"
                 >
@@ -228,6 +231,9 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric',
   })
+}
+const formatName = (path) => {
+  return path.split('uploads\\').pop()
 }
 
 onMounted(async () => {

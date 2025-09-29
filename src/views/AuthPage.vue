@@ -22,6 +22,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api/auth'
 import AppError from '../components/AppError.vue'
+import axios from 'axios'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -63,6 +64,8 @@ const handleSubmit = async (data) => {
     })
     userStore.currentUser = user
     localStorage.setItem('token', token)
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    await authApi.fetchUser()
     router.push({
       name: 'home',
     })

@@ -12,7 +12,7 @@
 
         <!-- Desktop -->
         <div class="hidden sm:flex items-center space-x-4">
-          <template v-if="!userStore.currentUser">
+          <template v-if="!currentUser">
             <a href="#about" class="hover:text-blue-100 px-3 py-2 transition-colors">About</a>
             <router-link to="/verify" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Verify a document
@@ -22,7 +22,7 @@
             </router-link>
           </template>
 
-          <template v-else-if="userStore.currentUser.role === 'user'">
+          <template v-else-if="currentUser.role === 'user'">
             <router-link to="/sign" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Sign document
             </router-link>
@@ -56,7 +56,7 @@
               Log out
             </button>
           </template>
-          <template v-else-if="userStore.currentUser.role === 'admin'"
+          <template v-else-if="currentUser.role === 'admin'"
             >"
             <router-link to="/admin" class="hover:text-blue-100 px-3 py-2 transition-colors">
               Admin panel
@@ -204,8 +204,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '../stores/user.js'
+import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()
+const { currentUser } = storeToRefs(userStore)
 const isOpen = ref(false)
 
 const scrollToTop = () => {

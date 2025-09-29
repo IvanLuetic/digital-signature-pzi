@@ -8,7 +8,7 @@ export const useDocumentStore = defineStore('document', () => {
     if (!filter.value) return documents.value
 
     return documents.value.filter((document) =>
-      document.title.toLowerCase().includes(filter.value.toLowerCase()),
+      document.signed_file_url.toLowerCase().includes(filter.value.toLowerCase()),
     )
   })
 

@@ -11,11 +11,12 @@
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             ></path>
           </svg>
-          <div class="min-w-0 flex-1">
+          <div v-if="!document">Loading</div>
+          <div v-else class="min-w-0 flex-1">
             <h4 class="text-lg font-semibold text-gray-900 truncate">
-              {{ document.file.originalname }}
+              {{ document.originalname }}
             </h4>
-            <p class="text-sm text-gray-500">{{ getFileSize() }} • {{ document.file.mimetype }}</p>
+            <p class="text-sm text-gray-500">• {{ document.mimetype }}</p>
           </div>
         </div>
 
@@ -40,7 +41,7 @@
           <img
             v-if="image && !loading"
             :src="image"
-            :alt="document.file.originalname"
+            :alt="document.originalname"
             class="max-w-full max-h-full object-contain rounded-lg shadow-sm"
           />
 
@@ -124,7 +125,7 @@
       </div>
 
       <p class="text-gray-700 mb-6">
-        Are you sure you want to delete "<strong>{{ document.file.originalname }}</strong
+        Are you sure you want to delete "<strong>{{ document.originalname }}</strong
         >"?
       </p>
 
@@ -152,48 +153,53 @@
 import { onMounted, ref, computed } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
-import { deleteDocument } from '@/api/document'
+import { deleteDocument, getDocument } from '@/api/document'
 
-const { document } = defineProps({
-  document: {
-    type: Object,
+const { id } = defineProps({
+  id: {
     required: true,
   },
 })
 
 const emit = defineEmits(['closeModal'])
 
+const document = ref()
 const image = ref(null)
 const pdfCanvas = ref(null)
 const loading = ref(true)
 const deleting = ref(false)
 const showDeleteConfirm = ref(false)
 
-const isPDF = computed(() => document.file.mimetype === 'application/pdf')
-
-const getFileSize = () => {
-  const bytes = document.file.size
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+const isPDF = computed(() => document.value?.mimetype === 'application/pdf')
 
 const displayDocument = async () => {
   loading.value = true
-  const fileData = document.file
   try {
-    if (fileData.mimetype.startsWith('image/')) {
-      // Convert buffer data to blob to display image
-      const uint8Array = new Uint8Array(fileData.buffer.data)
-      const blob = new Blob([uint8Array], { type: fileData.mimetype })
+    const response = await getDocument(id)
+
+    const contentType = response.headers['content-type']
+    const arrayBuffer = response.data
+
+    const contentDisposition = response.headers['content-disposition']
+    let fileName = 'document.pdf'
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/)
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1]
+      }
+    }
+    if (contentType.startsWith('image/')) {
+      const blob = new Blob([arrayBuffer], { type: contentType })
       const fileUrl = URL.createObjectURL(blob)
       image.value = fileUrl
-    } else if (fileData.mimetype === 'application/pdf') {
-      // Convert buffer data for PDF rendering
-      await renderPDF(fileData)
+    } else if (contentType === 'application/pdf') {
+      await renderPDF(arrayBuffer)
       image.value = null
+    }
+
+    document.value = {
+      originalname: fileName,
+      mimetype: contentType,
     }
   } catch (error) {
     console.error('Error displaying document:', error)
@@ -201,10 +207,9 @@ const displayDocument = async () => {
     loading.value = false
   }
 }
-
-const renderPDF = async (fileData) => {
+const renderPDF = async (arrayBuffer) => {
   try {
-    const uint8Array = new Uint8Array(fileData.buffer.data)
+    const uint8Array = new Uint8Array(arrayBuffer)
     const pdf = await pdfjsLib.getDocument(uint8Array).promise
     const page = await pdf.getPage(1)
 
@@ -224,15 +229,16 @@ const renderPDF = async (fileData) => {
   }
 }
 
-const downloadDocument = () => {
+const downloadDocument = async () => {
   try {
-    const byteArray = new Uint8Array(document.file.buffer.data)
-    const blob = new Blob([byteArray], { type: document.file.mimetype })
+    const response = await getDocument(id)
+
+    const blob = new Blob([response.data], { type: 'application/pdf' })
 
     const url = window.URL.createObjectURL(blob)
     const a = window.document.createElement('a')
     a.href = url
-    a.download = document.file.originalname
+    a.download = document.value.originalname
     window.document.body.appendChild(a)
     a.click()
 
@@ -256,7 +262,7 @@ const cancelDelete = () => {
 const handleDeleteDocument = async () => {
   deleting.value = true
   try {
-    await deleteDocument(document.id)
+    await deleteDocument(id)
     closeModal()
   } catch (error) {
     console.error('Delete failed', error)
