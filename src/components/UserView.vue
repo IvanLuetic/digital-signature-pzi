@@ -31,7 +31,7 @@
                   ></path>
                 </svg>
                 <h5 class="font-semibold truncate text-gray-900">
-                  {{ document.originalname }}
+                  {{ formatName(document.signed_file_url) }}
                 </h5>
               </div>
 
@@ -100,5 +100,8 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric',
   })
+}
+const formatName = (path) => {
+  return path.split('uploads\\').pop()
 }
 </script>

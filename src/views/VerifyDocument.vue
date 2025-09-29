@@ -80,16 +80,16 @@
       </button>
     </div>
 
-    <div v-if="!verificationResult" class="w-full md:w-3/5 lg:w-2/5 mt-8">
+    <div v-if="verificationResult" class="w-full md:w-3/5 lg:w-2/5 mt-8">
       <div class="p-6 rounded-xl border-2' 'border-green-500 bg-green-100">
         <div class="flex items-center gap-3 mb-4">
           <i class="mdi mdi-check-circle text-green-600 text-3xl"></i>
           <h3 class="text-xl font-semibold">Verification succesful!</h3>
         </div>
 
-        <div v-if="verificationResult" class="text-left space-y-2">
+        <div class="text-left space-y-2">
           <p><strong>Signer:</strong> {{ verificationResult.signer_username }}</p>
-          <p><strong>Signed at:</strong> {{ verificationResult.signed_at }}</p>
+          <p><strong>Signed at:</strong> {{ formatDate(verificationResult.signed_at) }}</p>
         </div>
       </div>
     </div>
@@ -114,10 +114,15 @@ const fileInput = ref(null)
 const uploadArea = ref(null)
 
 const handleFile = async (event) => {
+  isUploading.value = true
   const selectedFile = event.dataTransfer?.files[0] || event.target.files[0]
   file.value = selectedFile
-  isUploading.value = true
-  isUploading.value = false
+  if (file.value.name.toLowerCase().endsWith('zip')) {
+    isUploading.value = false
+  } else {
+    file.value = ''
+    alert('Please upload a .zip file')
+  }
 }
 
 const triggerFileInput = () => {
@@ -164,5 +169,15 @@ const removeFileInput = () => {
 const clearError = () => {
   error.value = ''
   success.value = ''
+}
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 </script>

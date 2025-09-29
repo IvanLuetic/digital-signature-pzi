@@ -153,7 +153,7 @@
 import { onMounted, ref, computed } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.mjs'
-import { deleteDocument, getDocument } from '@/api/document'
+import { deleteDocument, getDocument, getDocuments } from '@/api/document'
 
 const { id } = defineProps({
   id: {
@@ -263,6 +263,7 @@ const handleDeleteDocument = async () => {
   deleting.value = true
   try {
     await deleteDocument(id)
+    await getDocuments()
     closeModal()
   } catch (error) {
     console.error('Delete failed', error)

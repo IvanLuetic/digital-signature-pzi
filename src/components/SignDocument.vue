@@ -143,7 +143,7 @@ const uploadArea = ref(null)
 const pdfCanvas = ref(null)
 
 const handleFile = (event) => {
-  file.value = event.target.files[0]
+  file.value = event.dataTransfer?.files[0] || event.target.files[0]
   console.log(file.value)
   isUploading.value = true
   if (

@@ -118,23 +118,26 @@
     <!-- Mobile -->
     <div v-show="isOpen" class="sm:hidden bg-blue-700">
       <div class="px-2 pt-2 pb-3 space-y-1">
-        <template v-if="!userStore.currentUser">
+        <template v-if="!currentUser">
           <a href="#about" class="block px-3 py-2" @click="isOpen = false"> About </a>
           <router-link to="/auth" class="block px-3 py-2" @click="isOpen = false">
             Log in
           </router-link>
-          <router-link to="/auth" class="block px-3 py-2" @click="isOpen = false">
-            Register
+          <router-link to="/verify" class="block px-3 py-2" @click="isOpen = false">
+            Verify document
           </router-link>
         </template>
 
-        <template v-else-if="userStore.currentUser.role === 'user'">
+        <template v-else-if="currentUser.role === 'user'">
           <router-link
             to="/sign"
             class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
             @click="isOpen = false"
           >
             Sign document
+          </router-link>
+          <router-link to="/verify" class="block px-3 py-2" @click="isOpen = false">
+            Verify document
           </router-link>
           <router-link
             to="/profile"
@@ -162,7 +165,7 @@
             Log out
           </button>
         </template>
-        <template v-else-if="userStore.currentUser.role === 'admin'">
+        <template v-else-if="currentUser.role === 'admin'">
           <router-link
             to="/admin"
             class="px-2 py-2 flex flex-row hover:bg-blue-600 rounded-md transition-colors items-center"
