@@ -38,11 +38,11 @@ CREATE TABLE signed_documents (
 -- audit log table
 CREATE TABLE audit_log (
                            id INT AUTO_INCREMENT PRIMARY KEY,
-                           user_id INT NOT NULL,
+                           user_id INT,
                            action VARCHAR(50) NOT NULL,
                            details TEXT,
                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                           FOREIGN KEY (user_id) REFERENCES users(id)
+                           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 -- Ensure uniqueness of unsigned file hash per user
 CREATE UNIQUE INDEX idx_user_file_hash ON signed_documents(user_id, unsigned_file_hash);
