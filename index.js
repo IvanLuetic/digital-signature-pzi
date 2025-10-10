@@ -172,17 +172,17 @@ api.patch('/auth/change-password', authJWT, async (req, res) => {
       const { id: pgpId, encrypted_private_key } = pgpRows[0];
 
       try {
-        // ✅ Decrypt private key with old password
+        // ✅ Decrypt with old password
         const privateKeyObj = await openpgp.decryptKey({
           privateKey: await openpgp.readPrivateKey({ armoredKey: encrypted_private_key }),
           passphrase: oldPassword
         });
 
         // ✅ Re-encrypt with new password
-        const reEncryptedKey = await openpgp.encryptKey({
+        const reEncryptedKey = (await openpgp.encryptKey({
           privateKey: privateKeyObj,
           passphrase: newPassword
-        });
+        })).armor();
 
         // ✅ Hash new password
         bcrypt.hash(newPassword, 10, (err, newHash) => {
@@ -190,32 +190,79 @@ api.patch('/auth/change-password', authJWT, async (req, res) => {
             return res.status(500).json({ message: 'Error hashing new password' });
           }
 
-          // ✅ Update both password and private key
-          apiDB.query("UPDATE users SET password_hash=? WHERE id=?", [newHash, req.user.id], (err) => {
+          // ✅ Begin transaction
+          apiDB.getConnection((err, connection) => {
             if (err) {
-              return res.status(500).json({ message: 'Error updating password' });
+              return res.status(500).json({ message: 'Database connection error' });
             }
 
-            apiDB.query("UPDATE pgp SET encrypted_private_key=? WHERE id=?", [reEncryptedKey, pgpId], (err) => {
+            connection.beginTransaction(err => {
               if (err) {
-                return res.status(500).json({ message: 'Error updating PGP key' });
+                connection.release();
+                return res.status(500).json({ message: 'Failed to start transaction' });
               }
 
-              apiDB.query(
-                "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
-                [req.user.id, 'change_password', '{}']
-              );
+              // ✅ Update password
+              connection.query("UPDATE users SET password_hash=? WHERE id=?", [newHash, req.user.id], (err) => {
+                if (err) {
+                  connection.rollback(() => {
+                    connection.release();
+                    console.error('Error updating password:', err);
+                    return res.status(500).json({ message: 'Failed to update password' });
+                  });
+                  return;
+                }
 
-              return res.status(200).json({ message: 'Password and PGP key updated successfully' });
+                // ✅ Update PGP key
+                connection.query("UPDATE pgp SET encrypted_private_key=? WHERE id=?", [reEncryptedKey, pgpId], (err) => {
+                  if (err) {
+                    connection.rollback(() => {
+                      connection.release();
+                      console.error('Error updating PGP key:', err);
+                      return res.status(500).json({ message: 'Failed to update PGP key. Password change rolled back.' });
+                    });
+                    return;
+                  }
+
+                  // ✅ Insert audit log
+                  connection.query(
+                    "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
+                    [req.user.id, 'change_password', '{}'],
+                    (err) => {
+                      if (err) {
+                        connection.rollback(() => {
+                          connection.release();
+                          console.error('Error writing audit log:', err);
+                          return res.status(500).json({ message: 'Audit log failed. Password change rolled back.' });
+                        });
+                        return;
+                      }
+
+                      // ✅ Commit transaction
+                      connection.commit(err => {
+                        connection.release();
+                        if (err) {
+                          console.error('Transaction commit failed:', err);
+                          return res.status(500).json({ message: 'Commit failed. Password change not saved.' });
+                        }
+
+                        return res.status(200).json({ message: 'Password and PGP key updated successfully' });
+                      });
+                    }
+                  );
+                });
+              });
             });
           });
         });
       } catch (e) {
+        console.error('Failed to decrypt or re-encrypt private key:', e);
         return res.status(500).json({ message: 'Failed to decrypt private key with old password' });
       }
     });
   });
 });
+
 
 // /pgp/regenerate
 /*api.post('/pgp/regenerate', authJWT, async (req, res) => {
