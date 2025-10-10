@@ -14,8 +14,10 @@ const fs = require('fs');
 const AdmZip = require('adm-zip');
 const mime = require('mime-types');
 
+const port = process.env.PORT;
+const corsOrigin = process.env.CORS_ORIGIN;
 const api = express();
-api.use(cors({ origin: "http://localhost:5173", credentials: true }));
+api.use(cors({ origin: corsOrigin, credentials: true }));
 api.use(express.json());
 
 const apiDB = sql.createPool({
@@ -600,6 +602,6 @@ api.get("/audit_log", authJWT, requireAdmin, (req, res) => {
     res.status(200).json({ logs: results });
   });
 });
-api.listen(5001, "localhost", () => {
+api.listen(port, "localhost", () => {
   console.log('Server running on port 5001');
 });
