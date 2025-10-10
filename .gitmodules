@@ -1,3 +1,4 @@
 [submodule "server_shim"]
 	path = server_shim
 	url = https://github.com/NiksaRamljak/php_node_proxy.git
+	branch = master
