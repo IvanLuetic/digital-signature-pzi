@@ -152,7 +152,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
 import { deleteDocument, getDocument, getDocuments } from '@/api/document'
 
 const { id } = defineProps({

@@ -118,7 +118,7 @@ import { downloadDocument, getPublicKeys, signDocument } from '@/api/document'
 import * as pdfjsLib from 'pdfjs-dist'
 import { ref } from 'vue'
 import SignDocForm from './SignDocForm.vue'
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
 
 const emit = defineEmits(['message'])
 const isUploading = ref(false)
