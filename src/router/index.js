@@ -49,7 +49,7 @@ const router = createRouter({
       path: '/admin/',
       name: 'adminDashboard',
       component: () => import('../views/AdminDashboard.vue'),
-      /* beforeEnter: forbidUnauthorized, */
+      beforeEnter: forbidUnauthorized,
     },
   ],
 })

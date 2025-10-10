@@ -1,0 +1,1 @@
+import{C as s}from"./index-_KYfJ8Fu.js";const r=async e=>await s.patch("/users/profile",e),o=async e=>await s.get(`/admin/users?page=${e}`),c=async e=>(await s.get(`/admin/user/${e}/documents/`)).data.documents,u=async e=>await s.delete(`/admin/user/${e}`);export{c as a,u as d,r as e,o as g};
