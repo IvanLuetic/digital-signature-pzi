@@ -147,7 +147,7 @@ api.post('/auth/logout', authJWT, (req, res) => {
 });
 
 // /auth/change-password
-api.post('/auth/change-password', authJWT, async (req, res) => {
+api.patch('/auth/change-password', authJWT, async (req, res) => {
   const { newPassword } = req.body;
   apiDB.query("SELECT id FROM users WHERE id=?", [req.user.id], async (err, results) => {
     if (err || results.length === 0) return res.status(400).json({ message: 'Invalid request' });
