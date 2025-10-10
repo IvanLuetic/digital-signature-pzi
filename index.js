@@ -148,41 +148,70 @@ api.post('/auth/logout', authJWT, (req, res) => {
 
 // /auth/change-password
 api.patch('/auth/change-password', authJWT, async (req, res) => {
-  const { newPassword } = req.body;
-  apiDB.query("SELECT id FROM users WHERE id=?", [req.user.id], async (err, results) => {
-    if (err || results.length === 0) return res.status(400).json({ message: 'Invalid request' });
+  const { oldPassword, newPassword } = req.body;
 
-    // Get encrypted private key
+  apiDB.query("SELECT id, password_hash FROM users WHERE id=?", [req.user.id], async (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const { password_hash } = results[0];
+
+    // ✅ Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Old password is incorrect' });
+    }
+
+    // ✅ Get encrypted private key
     apiDB.query("SELECT id, encrypted_private_key FROM pgp WHERE user_id=?", [req.user.id], async (err, pgpRows) => {
-      if (err || pgpRows.length === 0) return res.status(500).json({ message: 'PGP key not found' });
+      if (err || pgpRows.length === 0) {
+        return res.status(500).json({ message: 'PGP key not found' });
+      }
+
       const { id: pgpId, encrypted_private_key } = pgpRows[0];
 
       try {
-        // Decrypt private key with current password (assume user is authenticated and has access)
-        const privateKeyObj = await openpgp.readPrivateKey({ armoredKey: encrypted_private_key });
-        // Re-encrypt with new password
+        // ✅ Decrypt private key with old password
+        const privateKeyObj = await openpgp.decryptKey({
+          privateKey: await openpgp.readPrivateKey({ armoredKey: encrypted_private_key }),
+          passphrase: oldPassword
+        });
+
+        // ✅ Re-encrypt with new password
         const reEncryptedKey = await openpgp.encryptKey({
           privateKey: privateKeyObj,
           passphrase: newPassword
         });
 
-        // Update password hash and encrypted private key
+        // ✅ Hash new password
         bcrypt.hash(newPassword, 10, (err, newHash) => {
-          if (err) return res.status(500).json({ message: 'Error hashing new password' });
+          if (err) {
+            return res.status(500).json({ message: 'Error hashing new password' });
+          }
+
+          // ✅ Update both password and private key
           apiDB.query("UPDATE users SET password_hash=? WHERE id=?", [newHash, req.user.id], (err) => {
-            if (err) return res.status(500).json({ message: 'Error updating password' });
+            if (err) {
+              return res.status(500).json({ message: 'Error updating password' });
+            }
+
             apiDB.query("UPDATE pgp SET encrypted_private_key=? WHERE id=?", [reEncryptedKey, pgpId], (err) => {
-              if (err) return res.status(500).json({ message: 'Error updating PGP key' });
+              if (err) {
+                return res.status(500).json({ message: 'Error updating PGP key' });
+              }
+
               apiDB.query(
                 "INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)",
                 [req.user.id, 'change_password', '{}']
               );
-              res.status(200).json({ message: 'Password and PGP key updated successfully' });
+
+              return res.status(200).json({ message: 'Password and PGP key updated successfully' });
             });
           });
         });
       } catch (e) {
-        return res.status(500).json({ message: 'Error updating PGP key' });
+        return res.status(500).json({ message: 'Failed to decrypt private key with old password' });
       }
     });
   });
