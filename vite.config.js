@@ -22,4 +22,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    mimeTypes: {
+      // Force correct MIME type for .mjs files
+      'mjs': 'text/javascript'
+    }
+  }
 })
